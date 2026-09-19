@@ -19,7 +19,7 @@ class AdminAuth implements FilterInterface
         if ($user !== $expectedUser || $pass !== $expectedPass) {
             return service('response')
                 ->setStatusCode(401)
-                ->setHeader('WWW-Authenticate', 'Basic realm="Northvale Admin"')
+                ->setHeader('WWW-Authenticate', 'Basic realm="UIU Recruitment Portal Admin"')
                 ->setBody('Authentication required.');
         }
 

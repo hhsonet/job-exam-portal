@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Applicant Assessment | Northvale Systems</title>
+<title>Applicant Assessment | UIU Recruitment Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -37,7 +37,6 @@
   .option-marker.selected { background: var(--blue); color: #FFFFFF; border-color: var(--blue); }
   .nav-btn { height: 44px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; background: #FFFFFF; color: var(--ink-muted); border: 1px solid var(--border-input); }
   .nav-btn.answered { background: var(--blue); color: #FFFFFF; border: 1px solid transparent; }
-  .nav-btn.marked { background: #F5B33C; color: #4A2E00; border: 1px solid transparent; }
   .nav-btn.current { border: 2px solid var(--navy); }
   .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 48px 28px; border-radius: 12px; cursor: pointer; text-align: center; border: 2px dashed var(--border-input); background: var(--bg-aside); }
   .dropzone.drag-active { border-color: var(--blue); background: #F2F6FE; }
@@ -51,8 +50,8 @@
   <!-- INSTRUCTIONS -->
   <div id="screenInstructions" style="flex: 1; display: flex; flex-direction: column;">
     <div style="border-bottom: 1px solid var(--border); padding: 18px 28px; display: flex; align-items: center; gap: 14px;">
-      <div class="brand-badge">NV</div>
-      <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">Northvale Systems</div>
+      <div class="brand-badge">UIU</div>
+      <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">UIU Recruitment Portal</div>
       <div class="mono" style="margin-left: auto; font-size: 12px; color: var(--ink-faint); letter-spacing: 0.04em;">SECURE ASSESSMENT PORTAL</div>
     </div>
 
@@ -84,43 +83,12 @@
               <?php endif; ?>
             </div>
             <?php if ($dashboardExam['submitted_at']): ?><div style="font-size:12px;color:var(--ink-faint);margin-top:12px;">Submitted at <?= esc($dashboardExam['submitted_at']) ?></div><?php endif; ?>
+            <?php if ($dashboardExam['can_start'] || $dashboardExam['can_edit']): ?><a href="<?= site_url('exam?exam_token=' . urlencode($dashboardExam['exam_token'])) ?>" style="display:inline-block;border-radius:8px;padding:10px 15px;background:var(--blue);color:#fff;font-size:13px;font-weight:600;margin-top:14px;"><?= $dashboardExam['can_edit'] ? 'Edit submission' : 'Start exam' ?></a><?php endif; ?>
           <?php else: ?>
             <div style="font-size:14px;color:var(--ink-muted);">No assessment is assigned to this applicant yet.</div>
           <?php endif; ?>
         </div>
 
-        <div style="border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:36px;">
-          <div style="font-size:15px;font-weight:700;margin-bottom:14px;">Available exams</div>
-          <?php if (empty($availableExams)): ?>
-            <div style="font-size:14px;color:var(--ink-muted);">No exams are currently available.</div>
-          <?php else: ?>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
-              <?php foreach ($availableExams as $availableExam): ?>
-                <div style="border:1px solid var(--border);border-radius:9px;padding:16px;">
-                  <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
-                    <strong style="font-size:14px;line-height:1.35;"><?= esc($availableExam['title']) ?></strong>
-                    <span style="font-size:11px;font-weight:700;padding:4px 7px;border-radius:999px;background:<?= $availableExam['display_status'] === 'Open' ? '#E8F4EE' : ($availableExam['display_status'] === 'Closed' ? '#FDECEC' : '#FDF3E3') ?>;color:<?= $availableExam['display_status'] === 'Open' ? '#0F7B4F' : ($availableExam['display_status'] === 'Closed' ? '#B3261E' : '#8A5A08') ?>;white-space:nowrap;"><?= esc($availableExam['display_status']) ?></span>
-                  </div>
-                  <div style="font-size:13px;color:var(--ink-muted);margin-top:9px;"><?= (int) $availableExam['question_count'] ?> questions · <?= (int) ($availableExam['duration_seconds'] / 60) ?> minutes</div>
-                  <?php if ($availableExam['start_at'] || $availableExam['end_at']): ?>
-                    <div style="font-size:12px;color:var(--ink-faint);margin-top:6px;"><?= $availableExam['start_at'] ? esc($availableExam['start_at']) : 'Now' ?><?= $availableExam['end_at'] ? ' → ' . esc($availableExam['end_at']) : '' ?></div>
-                  <?php endif; ?>
-                  <?php if ($availableExam['has_submission']): ?>
-                    <div style="border:1px solid #BFE0CE;border-radius:8px;padding:12px;background:#F1FBF5;margin-top:14px;">
-                      <div style="font-size:12px;font-weight:700;color:#0F7B4F;">Submission status</div>
-                      <div style="font-size:13px;color:#426052;margin-top:4px;"><?= $availableExam['can_edit'] ? 'Submitted — editing is still open.' : 'Submitted — editing is closed.' ?></div>
-                    </div>
-                  <?php endif; ?>
-                  <?php if ($availableExam['can_start'] || $availableExam['can_edit']): ?>
-                    <a href="<?= site_url('exam?exam_token=' . urlencode($availableExam['exam_token'])) ?>" style="display:inline-block;border-radius:8px;padding:10px 15px;background:var(--blue);color:#fff;font-size:13px;font-weight:600;margin-top:14px;"><?= $availableExam['can_edit'] ? 'Edit submission' : 'Start exam' ?></a>
-                  <?php elseif ((int) $availableExam['question_count'] < 1): ?>
-                    <div style="font-size:12px;color:#8A5A08;margin-top:12px;">Questions have not been added yet.</div>
-                  <?php endif; ?>
-                </div>
-              <?php endforeach; ?>
-            </div>
-          <?php endif; ?>
-        </div>
 
         <?php if (false): ?>
 
@@ -136,7 +104,7 @@
 
     <header>
       <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-        <div class="brand-badge" style="width: 30px; height: 30px; font-size: 13px;">NV</div>
+        <div class="brand-badge" style="width: 30px; height: 30px; font-size: 13px;">UIU</div>
         <div style="min-width: 0;">
           <div style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= esc($applicant['position']) ?></div>
           <div style="font-size: 13px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= esc($applicant['name']) ?> &nbsp;·&nbsp; <span class="mono"><?= esc($applicant['id']) ?></span></div>
@@ -177,7 +145,6 @@
             <div id="typeLabel" style="font-size: 13px; color: var(--ink-faint);"></div>
             <div style="width: 1px; height: 14px; background: #D7DEE8;"></div>
             <div id="pointsLabel" style="font-size: 13px; color: var(--ink-faint);"></div>
-            <div id="markedPill" class="hidden" style="font-size: 12px; font-weight: 600; color: var(--amber-ink); background: var(--amber-bg); border: 1px solid var(--amber-border); border-radius: 999px; padding: 4px 12px;">Marked for review</div>
           </div>
 
           <h2 id="promptText" style="margin: 0 0 10px; font-size: 26px; line-height: 1.35; font-weight: 600; letter-spacing: -0.015em;"></h2>
@@ -238,9 +205,6 @@
             <span style="width: 16px; height: 16px; border-radius: 4px; background: #FFFFFF; border: 1px solid var(--border-input); flex: none;"></span>Unanswered <span id="unansweredCount" class="mono" style="margin-left: auto; font-weight: 600; color: var(--navy);">0</span>
           </div>
           <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-muted);">
-            <span style="width: 16px; height: 16px; border-radius: 4px; background: #F5B33C; flex: none;"></span>Marked for review <span id="markedCount" class="mono" style="margin-left: auto; font-weight: 600; color: var(--navy);">0</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-muted);">
             <span style="width: 16px; height: 16px; border-radius: 4px; background: #FFFFFF; border: 2px solid var(--navy); flex: none;"></span>Current question
           </div>
         </div>
@@ -253,14 +217,12 @@
           <div style="font-weight: 600; color: var(--ink-muted); margin-bottom: 6px;">Keyboard shortcuts</div>
           <div><span class="mono">←</span> / <span class="mono">→</span> previous / next</div>
           <div><span class="mono">1–4</span> choose an option</div>
-          <div><span class="mono">M</span> mark for review</div>
         </div>
       </aside>
     </div>
 
     <div style="position: sticky; bottom: 0; background: #FFFFFF; border-top: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; z-index: 20;">
       <button id="prevBtn" class="btn" style="background: #FFFFFF;">Previous</button>
-      <button id="markBtn" class="btn" style="background: #FFFFFF;">Mark for review</button>
       <div style="margin-left: auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
         <div id="saveLine" style="font-size: 13px; color: var(--ink-faint);">All answers saved</div>
         <button id="nextBtn" class="btn" style="background: var(--blue); color: #FFFFFF; border: none;">Save &amp; next</button>
@@ -284,8 +246,8 @@
   <!-- SUCCESS -->
   <div id="screenSuccess" class="hidden" style="flex: 1; display: flex; flex-direction: column;">
     <div style="border-bottom: 1px solid var(--border); padding: 18px 28px; display: flex; align-items: center; gap: 14px;">
-      <div class="brand-badge">NV</div>
-      <div style="font-size: 16px; font-weight: 600;">Northvale Systems</div>
+      <div class="brand-badge">UIU</div>
+      <div style="font-size: 16px; font-weight: 600;">UIU Recruitment Portal</div>
     </div>
     <div style="flex: 1; display: flex; justify-content: center; padding: 64px 28px;">
       <div style="width: 100%; max-width: 680px;">
@@ -293,7 +255,7 @@
           <span style="color: var(--green-ink); font-size: 24px; line-height: 1;">✓</span>
         </div>
         <h1 style="margin: 0 0 14px; font-size: 34px; font-weight: 700; letter-spacing: -0.025em;">Your exam has been submitted</h1>
-        <p style="margin: 0 0 36px; font-size: 17px; line-height: 1.6; color: var(--ink-muted); max-width: 58ch;">Thank you, <?= esc(explode(' ', $applicant['name'])[0]) ?>. Your responses are recorded. The hiring team at Northvale Systems will be in touch within five working days.</p>
+        <p style="margin: 0 0 36px; font-size: 17px; line-height: 1.6; color: var(--ink-muted); max-width: 58ch;">Thank you, <?= esc(explode(' ', $applicant['name'])[0]) ?>. Your responses are recorded. The hiring team at UIU Recruitment Portal will be in touch within five working days.</p>
 
         <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 32px;">
           <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--border);">
@@ -332,7 +294,6 @@
       <div style="border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; font-size: 15px; color: var(--ink-muted);">Answered <span id="modalAnswered" class="mono" style="font-weight: 600; color: var(--navy);"></span></div>
         <div style="display: flex; justify-content: space-between; font-size: 15px; color: var(--ink-muted);">Unanswered <span id="modalUnanswered" class="mono" style="font-weight: 600;"></span></div>
-        <div style="display: flex; justify-content: space-between; font-size: 15px; color: var(--ink-muted);">Marked for review <span id="modalMarked" class="mono" style="font-weight: 600; color: var(--navy);"></span></div>
         <div style="display: flex; justify-content: space-between; font-size: 15px; color: var(--ink-muted);">Time remaining <span id="modalTime" class="mono" style="font-weight: 600; color: var(--navy);"></span></div>
       </div>
 
@@ -372,7 +333,6 @@ const SUBMIT_URL = <?= json_encode(site_url('exam/submit')) ?>;
 
 const QUESTIONS = <?= json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 const SAVED_ANSWERS = <?= json_encode($savedAnswers ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
-const SAVED_MARKED = <?= json_encode($savedMarked ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 const CAN_EDIT_SUBMISSION = <?= !empty($canEditSubmission) ? 'true' : 'false' ?>;
 const SUBMITTED_URL = <?= json_encode(site_url('exam/submitted')) ?>;
 const DRAFT_KEY = "exam-draft-" + APPLICANT.id + "-" + EXAM_ID;
@@ -383,7 +343,6 @@ const state = {
   screen: <?= json_encode($initialScreen ?? 'instructions') ?>,
   index: 0,
   answers: Object.assign({}, SAVED_ANSWERS || {}, LOCAL_DRAFT.answers || {}),
-  marked: Object.assign({}, SAVED_MARKED || {}, LOCAL_DRAFT.marked || {}),
   secondsLeft: INITIAL_SECONDS,
   offline: !navigator.onLine,
   saveState: "saved",
@@ -397,7 +356,8 @@ const state = {
   timeUsed: <?= json_encode($submissionSummary['timeUsed'] ?? 0) ?>,
   uploading: false,
   uploadError: null,
-  dragActive: false
+  dragActive: false,
+  isSubmitting: false
 };
 
 const el = (id) => document.getElementById(id);
@@ -417,7 +377,7 @@ function isAnswered(q) {
 
 function cacheDraft() {
   if (!EXAM_ID) return;
-  localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers: state.answers, marked: state.marked, updatedAt: Date.now() }));
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers: state.answers, updatedAt: Date.now() }));
 }
 
 async function saveDraft() {
@@ -433,7 +393,7 @@ async function saveDraft() {
     const res = await fetch(AUTOSAVE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ examId: EXAM_ID, answers: state.answers, marked: state.marked })
+      body: JSON.stringify({ examId: EXAM_ID, answers: state.answers })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Autosave failed.");
@@ -471,14 +431,6 @@ function select(q, key) {
 function go(i) {
   state.index = Math.min(QUESTIONS.length - 1, Math.max(0, i));
   render();
-}
-
-function toggleMark() {
-  const id = QUESTIONS[state.index].id;
-  const marked = Object.assign({}, state.marked);
-  if (marked[id]) delete marked[id]; else marked[id] = true;
-  state.marked = marked;
-  markSaving();
 }
 
 async function uploadFile(q, file) {
@@ -524,8 +476,8 @@ function beginAutoSubmit() {
 
 async function finish() {
   state.showSubmitModal = false;
+  state.isSubmitting = true;
   const answeredCount = QUESTIONS.filter(isAnswered).length;
-  const markedCount = Object.keys(state.marked).length;
   const timeUsedSeconds = state.timeUsed || (TOTAL_SECONDS - state.secondsLeft);
 
   const payload = {
@@ -535,10 +487,8 @@ async function finish() {
       if (v && typeof v === "object" && v.storedName) return [k, { file: v.storedName, name: v.name }];
       return [k, v];
     })),
-    marked: state.marked,
     answeredCount,
     totalCount: QUESTIONS.length,
-    markedCount,
     timeUsedSeconds
   };
 
@@ -550,6 +500,7 @@ async function finish() {
     });
     const data = await res.json();
     if (!res.ok) {
+      state.isSubmitting = false;
       state.screen = "exam";
       render();
       alert(data.error || "This assessment is no longer accepting changes.");
@@ -559,6 +510,7 @@ async function finish() {
     window.location.href = SUBMITTED_URL;
     return;
   } catch (err) {
+    state.isSubmitting = false;
     state.screen = "exam";
     cacheDraft();
     render();
@@ -584,7 +536,6 @@ function render() {
   const q = QUESTIONS[state.index];
   const answeredCount = QUESTIONS.filter(isAnswered).length;
   const unansweredCount = QUESTIONS.length - answeredCount;
-  const markedCount = Object.keys(state.marked).length;
   const pct = Math.round((answeredCount / QUESTIONS.length) * 100);
   const secs = state.secondsLeft;
   const critical = secs < 300, low = secs < 600;
@@ -607,7 +558,6 @@ function render() {
   el("questionCounter").textContent = "Question " + (state.index + 1) + " of " + QUESTIONS.length;
   el("typeLabel").textContent = q.type === "single" ? "Multiple choice — one answer" : q.type === "multi" ? "Multiple choice — select all that apply" : q.type === "bool" ? "True or false" : q.type === "upload" ? "File upload — PDF" : "Written answer";
   el("pointsLabel").textContent = q.points + (q.points === 1 ? " point" : " points");
-  el("markedPill").classList.toggle("hidden", !state.marked[q.id]);
   el("promptText").textContent = q.prompt;
   el("hintText").textContent = q.hint;
   const attachmentInfo = el("attachmentInfo");
@@ -679,12 +629,11 @@ function render() {
   navGrid.innerHTML = "";
   QUESTIONS.forEach((x, i) => {
     const answered = isAnswered(x);
-    const isMarked = !!state.marked[x.id];
     const current = i === state.index;
     const btn = document.createElement("button");
-    btn.className = "nav-btn" + (isMarked ? " marked" : answered ? " answered" : "") + (current ? " current" : "");
+    btn.className = "nav-btn" + (answered ? " answered" : "") + (current ? " current" : "");
     btn.textContent = String(i + 1);
-    btn.setAttribute("aria-label", "Question " + (i + 1) + (answered ? ", answered" : ", unanswered") + (isMarked ? ", marked for review" : ""));
+    btn.setAttribute("aria-label", "Question " + (i + 1) + (answered ? ", answered" : ", unanswered"));
     btn.setAttribute("aria-current", current ? "true" : "false");
     btn.addEventListener("click", () => go(i));
     navGrid.appendChild(btn);
@@ -692,7 +641,6 @@ function render() {
 
   el("answeredCount").textContent = answeredCount;
   el("unansweredCount").textContent = unansweredCount;
-  el("markedCount").textContent = markedCount;
   el("progressSentence").textContent = answeredCount + " of " + QUESTIONS.length + " questions answered (" + pct + "%).";
 
   const last = state.index === QUESTIONS.length - 1;
@@ -703,10 +651,6 @@ function render() {
 
   el("nextBtn").textContent = last ? "Save & review" : "Save & next";
 
-  el("markBtn").textContent = state.marked[q.id] ? "Unmark review" : "Mark for review";
-  el("markBtn").style.background = state.marked[q.id] ? "#FDF3E3" : "#FFFFFF";
-  el("markBtn").style.color = state.marked[q.id] ? "#7A4A00" : "#44536B";
-  el("markBtn").style.border = "1px solid " + (state.marked[q.id] ? "#F0D9B5" : "#C9D3E0");
 
   el("saveLine").textContent = state.offline ? "Saved on this device" : state.saveState === "saving" ? "Saving…" : "All answers saved";
 
@@ -715,7 +659,6 @@ function render() {
   el("modalAnswered").textContent = answeredCount + " of " + QUESTIONS.length;
   el("modalUnanswered").textContent = unansweredCount;
   el("modalUnanswered").style.color = unansweredCount > 0 ? "#B3261E" : "#0B1F3A";
-  el("modalMarked").textContent = markedCount;
   el("modalTime").textContent = fmt(secs);
   el("unansweredWarning").classList.toggle("hidden", unansweredCount === 0);
   el("unansweredHeadline").textContent = unansweredCount === 1 ? "1 question has no answer" : unansweredCount + " questions have no answer";
@@ -781,7 +724,6 @@ el("dropZone").addEventListener("drop", (e) => {
 });
 
 el("prevBtn").addEventListener("click", () => go(state.index - 1));
-el("markBtn").addEventListener("click", () => toggleMark());
 el("nextBtn").addEventListener("click", () => {
   if (state.index === QUESTIONS.length - 1) { state.showSubmitModal = true; render(); }
   else go(state.index + 1);
@@ -800,7 +742,6 @@ document.addEventListener("keydown", (e) => {
   if (tag === "TEXTAREA" || tag === "INPUT") return;
   if (e.key === "ArrowLeft") go(state.index - 1);
   else if (e.key === "ArrowRight") go(state.index + 1);
-  else if (e.key.toLowerCase() === "m") toggleMark();
   else if (/^[1-4]$/.test(e.key)) {
     const q = QUESTIONS[state.index];
     if (q.options && q.options[+e.key - 1]) select(q, q.options[+e.key - 1].key);
@@ -808,7 +749,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 window.addEventListener("beforeunload", (e) => {
-  if (state.screen !== "exam") return;
+  if (state.screen !== "exam" || state.isSubmitting) return;
   e.preventDefault();
   e.returnValue = "";
 });

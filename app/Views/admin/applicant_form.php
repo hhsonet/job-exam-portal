@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= esc($formTitle) ?> · Northvale Admin</title>
+  <title><?= esc($formTitle) ?> · UIU Recruitment Portal Admin</title>
   <?php $adminSection = 'applicants'; ?>
   <?= $this->include('admin/_styles') ?>
 </head>

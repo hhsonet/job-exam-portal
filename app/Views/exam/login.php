@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign in | Northvale Systems</title>
+<title>Sign in | UIU Recruitment Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -33,8 +33,8 @@
 <div style="min-height: 100vh; display: flex; flex-direction: column; background: #FFFFFF;">
 
   <div style="border-bottom: 1px solid var(--border); padding: 18px 28px; display: flex; align-items: center; gap: 14px;">
-    <div style="width: 34px; height: 34px; border-radius: 7px; background: var(--blue); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">NV</div>
-    <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">Northvale Systems</div>
+    <div style="width: 34px; height: 34px; border-radius: 7px; background: var(--blue); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">UIU</div>
+    <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">UIU Recruitment Portal</div>
     <div class="mono" style="margin-left: auto; font-size: 12px; color: var(--ink-faint); letter-spacing: 0.04em;">SECURE ASSESSMENT PORTAL</div>
   </div>
 
@@ -78,7 +78,7 @@
         </form>
 
         <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 14px; line-height: 1.6; color: var(--ink-faint);">
-          Trouble signing in? Email <a href="mailto:assessments@northvale.example" style="font-weight: 500;">assessments@northvale.example</a> or call +91 80 4000 1200, Mon–Fri 09:00–18:00 IST.
+          Trouble signing in? Email <a href="mailto:recruitment@uiu.example" style="font-weight: 500;">recruitment@uiu.example</a> or call +91 80 4000 1200, Mon–Fri 09:00–18:00 IST.
         </div>
       </div>
     </div>
@@ -173,7 +173,7 @@ revealBtn.addEventListener("click", () => {
 
 document.getElementById("forgotLink").addEventListener("click", (e) => {
   e.preventDefault();
-  setError("credentials", "Password resets are handled by the assessment team. Email assessments@northvale.example with your applicant ID.");
+  setError("credentials", "Password resets are handled by the assessment team. Email recruitment@uiu.example with your applicant ID.");
 });
 
 form.addEventListener("submit", async (e) => {

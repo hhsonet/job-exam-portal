@@ -72,12 +72,23 @@ class Admin extends BaseController
 
         $db = db_connect();
 
+        $latestSubmissionStats = $db->query(
+            "SELECT COUNT(*) AS total_count,
+                    SUM(CASE WHEN s.status = 'submitted' THEN 1 ELSE 0 END) AS pending_count
+             FROM submissions s
+             INNER JOIN (
+                 SELECT MAX(id) AS id
+                 FROM submissions
+                 GROUP BY exam_id, applicant_id
+             ) latest ON latest.id = s.id"
+        )->getRowArray() ?: ['total_count' => 0, 'pending_count' => 0];
+
         return view('admin/index', [
             'username' => session()->get('admin_username'),
             'usertype' => session()->get('admin_usertype'),
             'questionCount' => $db->table('questions')->where('is_active', 1)->countAllResults(),
-            'submissionCount' => $db->table('submissions')->countAllResults(),
-            'pendingCount' => $db->table('submissions')->where('status', 'submitted')->countAllResults(),
+            'submissionCount' => (int) ($latestSubmissionStats['total_count'] ?? 0),
+            'pendingCount' => (int) ($latestSubmissionStats['pending_count'] ?? 0),
         ]);
     }
 
@@ -101,9 +112,47 @@ class Admin extends BaseController
             return $redirect;
         }
 
-        $exams = db_connect()->query('SELECT e.*, COUNT(q.id) AS question_count FROM exams e LEFT JOIN questions q ON q.exam_id = e.id GROUP BY e.id ORDER BY e.id DESC')->getResultArray();
+        $exams = db_connect()->query(
+            "SELECT e.*,
+                    COUNT(DISTINCT CASE WHEN q.is_active = 1 THEN q.id END) AS question_count,
+                    COUNT(DISTINCT u.id) AS applicant_count,
+                    COUNT(DISTINCT a.id) AS attempt_count,
+                    COUNT(DISTINCT s.id) AS submission_count,
+                    MAX(s.submitted_at) AS latest_submission_at
+             FROM exams e
+             LEFT JOIN questions q ON q.exam_id = e.id
+             LEFT JOIN users u ON u.assigned_exam_id = e.id AND u.usertype = 'applicant'
+             LEFT JOIN exam_attempts a ON a.exam_id = e.id
+             LEFT JOIN (
+                 SELECT s1.*
+                 FROM submissions s1
+                 INNER JOIN (
+                     SELECT MAX(id) AS id
+                     FROM submissions
+                     GROUP BY exam_id, applicant_id
+                 ) latest ON latest.id = s1.id
+             ) s ON s.exam_id = e.id
+             GROUP BY e.id
+             ORDER BY e.id DESC"
+        )->getResultArray();
+        $now = date('Y-m-d H:i:s');
+        foreach ($exams as &$exam) {
+            if ($exam['status'] !== 'active') {
+                $exam['display_status'] = ucfirst((string) $exam['status']);
+            } elseif ($exam['start_at'] && $now < $exam['start_at']) {
+                $exam['display_status'] = 'Scheduled';
+            } elseif ($exam['end_at'] && $now > $exam['end_at']) {
+                $exam['display_status'] = 'Closed';
+            } else {
+                $exam['display_status'] = 'Open';
+            }
+            $exam['submission_rate'] = (int) $exam['applicant_count'] > 0
+                ? min(100, round(((int) $exam['submission_count'] / (int) $exam['applicant_count']) * 100))
+                : 0;
+        }
+        unset($exam);
 
-        return view('admin/exams', ['exams' => $exams, 'error' => $this->request->getGet('error')]);
+        return view('admin/exams', ['exams' => $exams, 'error' => $this->request->getGet('error'), 'success' => $this->request->getGet('success')]);
     }
 
     public function deleteExam(int $id): ResponseInterface
@@ -127,6 +176,75 @@ class Admin extends BaseController
         $db->transComplete();
 
         return redirect()->to('/admin/exams');
+    }
+
+    public function deleteAllSubmissions(int $id = 0): ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $db = db_connect();
+        $exam = $id > 0 ? $db->table('exams')->where('id', $id)->get()->getRowArray() : null;
+        if ($id > 0 && ! $exam) {
+            return redirect()->to('/admin/exams?error=' . rawurlencode('Exam not found.'));
+        }
+
+        $submissionQuery = $db->table('submissions')->select('answers');
+        $attemptQuery = $db->table('exam_attempts')->select('answers');
+        if ($id > 0) {
+            $submissionQuery->where('exam_id', $id);
+            $attemptQuery->where('exam_id', $id);
+        }
+        $submissions = $submissionQuery->get()->getResultArray();
+        $attempts = $attemptQuery->get()->getResultArray();
+        $storedAnswerRows = array_merge($submissions, $attempts);
+        $count = count($submissions);
+        $db->transStart();
+        if ($id > 0) {
+            $db->table('submissions')->where('exam_id', $id)->delete();
+            $db->table('exam_attempts')->where('exam_id', $id)->delete();
+        } else {
+            $db->table('submissions')->where('id >', 0)->delete();
+            $db->table('exam_attempts')->where('id >', 0)->delete();
+        }
+        $db->transComplete();
+
+        if ($db->transStatus()) {
+            $uploadRoot = realpath(WRITEPATH . 'uploads/exam');
+            foreach ($storedAnswerRows as $storedAnswerRow) {
+                $answers = $storedAnswerRow['answers'] ? (json_decode($storedAnswerRow['answers'], true) ?: []) : [];
+                foreach ($answers as $answer) {
+                    $relativePath = is_array($answer) ? (string) ($answer['file'] ?? '') : '';
+                    if (! $uploadRoot || $relativePath === '') {
+                        continue;
+                    }
+                    $filePath = realpath($uploadRoot . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath));
+                    if ($filePath && str_starts_with($filePath, $uploadRoot . DIRECTORY_SEPARATOR) && is_file($filePath)) {
+                        unlink($filePath);
+                    }
+                }
+            }
+
+            if ($id === 0 && $uploadRoot) {
+                $fileIterator = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($uploadRoot, \FilesystemIterator::SKIP_DOTS)
+                );
+                foreach ($fileIterator as $fileInfo) {
+                    if ($fileInfo->isFile()) {
+                        unlink($fileInfo->getPathname());
+                    }
+                }
+            }
+        }
+
+        $message = $id > 0
+            ? $count . ' submission(s) removed from ' . $exam['title'] . '.'
+            : $count . ' submission(s) removed.';
+
+        return redirect()->to(site_url($id > 0
+            ? 'admin/exams?success=' . rawurlencode($message)
+            : 'admin/submissions?success=' . rawurlencode($message)));
     }
 
     public function newExam(): string|ResponseInterface
@@ -587,15 +705,26 @@ class Admin extends BaseController
 
         $db = db_connect();
         $applicantFilter = trim((string) ($this->request->getGet('applicant') ?: $this->request->getGet('applicant_filter')));
+        $examFilter = (int) $this->request->getGet('exam_id');
         $submissionQuery = $db->table('submissions s')
-            ->select('s.*, u.full_name AS applicant_name, u.position AS applicant_position')
+            ->select('s.*, u.full_name AS applicant_name, u.position AS applicant_position, e.title AS exam_title')
+            ->join(
+                '(SELECT MAX(id) AS id FROM submissions GROUP BY exam_id, applicant_id) latest_submission',
+                'latest_submission.id = s.id',
+                'inner',
+                false
+            )
             ->join('users u', "u.applicant_code = s.applicant_id AND u.usertype = 'applicant'", 'left')
+            ->join('exams e', 'e.id = s.exam_id', 'left')
             ->orderBy('s.id', 'DESC');
         if ($applicantFilter !== '') {
             $submissionQuery->groupStart()
                 ->like('s.applicant_id', $applicantFilter)
                 ->orLike('u.full_name', $applicantFilter)
                 ->groupEnd();
+        }
+        if ($examFilter > 0) {
+            $submissionQuery->where('s.exam_id', $examFilter);
         }
         $submissions = $submissionQuery->get()->getResultArray();
         foreach ($submissions as &$submission) {
@@ -605,7 +734,9 @@ class Admin extends BaseController
 
         $applicants = $db->table('users')->select('applicant_code, full_name')->where('usertype', 'applicant')->orderBy('full_name', 'ASC')->get()->getResultArray();
 
-        return view('admin/submissions', ['submissions' => $submissions, 'applicants' => $applicants, 'applicantFilter' => $applicantFilter]);
+        $exams = $db->table('exams')->orderBy('title', 'ASC')->get()->getResultArray();
+
+        return view('admin/submissions', ['submissions' => $submissions, 'applicants' => $applicants, 'exams' => $exams, 'applicantFilter' => $applicantFilter, 'examFilter' => $examFilter, 'success' => $this->request->getGet('success')]);
     }
 
     public function markSubmission(int $id): ResponseInterface
@@ -618,7 +749,20 @@ class Admin extends BaseController
         $maxScore = max(0, (float) $this->request->getPost('max_score'));
         $notes = trim((string) $this->request->getPost('marker_notes'));
 
-        db_connect()->table('submissions')->where('id', $id)->update([
+        $db = db_connect();
+        $submission = $db->table('submissions')->where('id', $id)->get()->getRowArray();
+        if ($submission && $submission['exam_id'] !== null && $submission['applicant_id'] !== null) {
+            $latestId = $db->table('submissions')
+                ->select('id')
+                ->where(['exam_id' => $submission['exam_id'], 'applicant_id' => $submission['applicant_id']])
+                ->orderBy('id', 'DESC')
+                ->get()->getRow('id');
+            if ($latestId) {
+                $id = (int) $latestId;
+            }
+        }
+
+        $db->table('submissions')->where('id', $id)->update([
             'score' => $score,
             'max_score' => $maxScore,
             'marker_notes' => $notes ?: null,
@@ -637,15 +781,27 @@ class Admin extends BaseController
 
         $db = db_connect();
         $submission = $db->table('submissions s')
-            ->select('s.*, u.full_name AS applicant_name, u.position AS applicant_position')
+            ->select('s.*, e.title AS exam_title, u.full_name AS applicant_name, u.position AS applicant_position')
             ->join('users u', "u.applicant_code = s.applicant_id AND u.usertype = 'applicant'", 'left')
+            ->join('exams e', 'e.id = s.exam_id', 'left')
             ->where('s.id', $id)->get()->getRowArray();
         if (! $submission) {
             return redirect()->to('/admin/submissions');
         }
 
+        if ($submission['exam_id'] !== null && $submission['applicant_id'] !== null) {
+            $latestId = $db->table('submissions')
+                ->select('id')
+                ->where(['exam_id' => $submission['exam_id'], 'applicant_id' => $submission['applicant_id']])
+                ->orderBy('id', 'DESC')
+                ->get()->getRow('id');
+            if ($latestId && (int) $latestId !== $id) {
+                return redirect()->to(site_url('admin/submissions/' . $latestId));
+            }
+        }
+
         $answers = $submission['answers'] ? json_decode($submission['answers'], true) : [];
-        $questions = $db->table('questions')->where('is_active', 1)->orderBy('id', 'ASC')->get()->getResultArray();
+        $questions = $db->table('questions')->where(['exam_id' => $submission['exam_id'], 'is_active' => 1])->orderBy('id', 'ASC')->get()->getResultArray();
         foreach ($questions as &$question) {
             $question['answer_key'] = 'q' . $question['id'];
             $question['answer'] = $answers[$question['answer_key']] ?? null;

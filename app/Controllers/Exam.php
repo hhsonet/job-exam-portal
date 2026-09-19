@@ -413,7 +413,9 @@ class Exam extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['error' => 'That file is larger than 10 MB. Please upload a smaller PDF.']);
         }
 
-        $targetDir = WRITEPATH . 'uploads/exam';
+        $applicantCode = (string) session()->get('applicant_id');
+        $applicantFolder = preg_replace('/[^A-Za-z0-9_-]/', '_', $applicantCode) ?: 'applicant';
+        $targetDir = WRITEPATH . 'uploads/exam/' . $applicantFolder;
         if (! is_dir($targetDir)) {
             mkdir($targetDir, 0755, true);
         }
@@ -424,7 +426,7 @@ class Exam extends BaseController
 
         return $this->response->setJSON([
             'name' => $file->getClientName(),
-            'storedName' => $storedName,
+            'storedName' => $applicantFolder . '/' . $storedName,
             'size' => $sizeLabel,
         ]);
     }
@@ -525,22 +527,6 @@ class Exam extends BaseController
             ->where(['exam_id' => $examId, 'applicant_id' => $applicant['applicant_code']])
             ->update(['answers' => json_encode($answers), 'marked' => json_encode($marked), 'updated_at' => $submittedAtDb]);
 
-        $record = [
-            'reference' => $reference,
-            'submittedAt' => $submittedAt,
-            'applicantId' => $applicant['applicant_code'],
-            'answeredCount' => $answeredCount,
-            'totalCount' => $totalCount,
-            'markedCount' => count($marked),
-            'timeUsed' => $timeUsed,
-            'answers' => $answers,
-            'createdAt' => date('c'),
-        ];
-        $dir = WRITEPATH . 'exam_submissions';
-        if (! is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        file_put_contents($dir . '/' . $reference . '.json', json_encode($record, JSON_PRETTY_PRINT));
         session()->set('submitted_exam_id', $examId);
 
         return $this->response->setJSON(['referenceNumber' => $reference, 'submittedAt' => $submittedAt]);
