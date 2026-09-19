@@ -44,7 +44,7 @@
       <div style="width: 100%; max-width: 420px;">
         <div class="mono" style="font-size: 12px; letter-spacing: 0.1em; color: var(--blue); text-transform: uppercase; margin-bottom: 14px;">Candidate sign in</div>
         <h1 style="margin: 0 0 12px; font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: -0.025em;">Sign in to your assessment</h1>
-        <p style="margin: 0 0 34px; font-size: 16px; line-height: 1.6; color: var(--ink-muted);">Use the applicant ID and password from your invitation email. Both are case sensitive.</p>
+        <p style="margin: 0 0 34px; font-size: 16px; line-height: 1.6; color: var(--ink-muted);">Use the Applicant ID and password provided by your invigilator. Both are case-sensitive.</p>
 
         <div id="errorBox" class="hidden" role="alert" style="background: var(--red-bg); border: 1px solid var(--red-border); border-radius: 10px; padding: 14px 18px; margin-bottom: 22px;">
           <div id="errorTitle" style="font-size: 15px; font-weight: 700; color: var(--red-ink); margin-bottom: 4px;"></div>
@@ -55,7 +55,6 @@
           <div>
             <label for="applicant-id" style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Applicant ID</label>
             <input id="applicant-id" name="id" type="text" placeholder="APP-YYYY-#####" autocomplete="username" class="field-input mono" style="letter-spacing: 0.03em;">
-            <div style="font-size: 13px; color: var(--ink-faint); margin-top: 7px;">Format: APP-YYYY-#####, as printed in your invitation.</div>
           </div>
 
           <div>
@@ -77,9 +76,6 @@
           <button type="submit" id="submitBtn" disabled style="width: 100%; height: 58px; font-size: 17px; font-weight: 600; border-radius: 10px; border: none; background: #E7EBF1; color: #94A2B6; cursor: not-allowed;">Sign in</button>
         </form>
 
-        <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 14px; line-height: 1.6; color: var(--ink-faint);">
-          Trouble signing in? Email <a href="mailto:recruitment@uiu.example" style="font-weight: 500;">recruitment@uiu.example</a> or call +91 80 4000 1200, Mon–Fri 09:00–18:00 IST.
-        </div>
       </div>
     </div>
 
@@ -96,11 +92,13 @@
           </div>
         </div>
 
-        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 14px;">Before you sign in</div>
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 14px;">Before You Sign In</div>
         <ul style="margin: 0 0 26px; padding-left: 18px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 1.55; color: var(--ink-muted);">
-          <li>Allow 45 uninterrupted minutes. The timer cannot be paused once started.</li>
-          <li>Use a laptop or tablet on a stable connection. Your answers save automatically.</li>
-          <li>Have your take-home PDF ready to upload for the final question.</li>
+          <li>Once you start the exam, the timer will begin and <strong>cannot be paused</strong>.</li>
+          <li>Use a <strong>laptop or tablet</strong> with a stable internet connection. Your answers will be saved automatically.</li>
+          <li><strong>Do not open or switch to other tabs</strong> during the exam.</li>
+          <li>Any <strong>unfair means or misconduct</strong> may result in immediate disqualification and blacklisting.</li>
+          <li>Make sure you are ready before starting the exam.</li>
         </ul>
 
         <div style="background: #FFFFFF; border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
@@ -173,7 +171,7 @@ revealBtn.addEventListener("click", () => {
 
 document.getElementById("forgotLink").addEventListener("click", (e) => {
   e.preventDefault();
-  setError("credentials", "Password resets are handled by the assessment team. Email recruitment@uiu.example with your applicant ID.");
+  setError("credentials", "Password resets are handled by the assessment team. Please contact your recruiter.");
 });
 
 form.addEventListener("submit", async (e) => {

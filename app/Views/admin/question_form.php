@@ -50,7 +50,7 @@
           <label>Question attachments</label>
           <?php if (!empty($existingAttachments)): ?>
             <div class="existing-files">
-              <?php foreach ($existingAttachments as $attachment): ?><div class="existing-file"><span><?= esc($attachment['original_name']) ?></span><a href="<?= site_url('admin/questions/' . ($questionId ?? 0) . '/attachment/' . $attachment['id']) ?>">Download</a></div><?php endforeach; ?>
+              <?php foreach ($existingAttachments as $attachment): ?><div class="existing-file"><span><?= esc($attachment['original_name']) ?></span><a download="<?= esc($attachment['original_name']) ?>" href="<?= site_url('admin/questions/' . ($questionId ?? 0) . '/attachment/' . $attachment['id']) ?>">Download</a></div><?php endforeach; ?>
             </div>
             <p style="font-size:13px;color:#798196">Existing attachments are kept. Add more files below if needed.</p>
           <?php endif; ?>

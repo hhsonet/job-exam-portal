@@ -36,8 +36,6 @@
         <div class="admin-card"><div class="label">Submitted</div><div class="value" style="font-size:14px"><?= esc($submission['submitted_at']) ?></div></div>
       </div>
 
-      <?php if (!empty($activityLogs)): ?><section class="activity-log"><div class="label" style="margin-bottom:5px">Activity log</div><?php foreach ($activityLogs as $activity): ?><div class="activity-item"><div class="activity-title"><?= esc($activity['event']) ?></div><div class="activity-meta"><?= esc($activity['created_at']) ?> · Actor: <?= esc($activity['actor_name'] ?: ($activity['actor_username'] ?: ($activity['user_id'] ? 'User #' . $activity['user_id'] : 'System'))) ?><?php if ($activity['description']): ?> · <?= esc($activity['description']) ?><?php endif; ?></div></div><?php endforeach; ?></section><?php endif; ?>
-
       <form id="markForm" method="post" action="<?= site_url('admin/submissions/' . $submission['id'] . '/mark') ?>">
         <section class="mark-table">
           <table>
@@ -50,7 +48,7 @@
                 <td><div class="question-body"><?= nl2br(esc($question['prompt'])) ?></div><div class="question-type"><?= esc($question['type']) ?> · Maximum <?= esc($question['points']) ?> marks</div></td>
                 <td>
                   <?php if ($isFileAnswer): ?>
-                    <div class="answer-box file-answer"><span>File: <?= esc($answer['name'] ?? basename((string) $answer['file'])) ?></span><a href="<?= site_url('admin/submissions/' . $submission['id'] . '/question/' . $question['id'] . '/file') ?>">Download file</a></div>
+                    <div class="answer-box file-answer"><span>File: <?= esc($answer['name'] ?? basename((string) $answer['file'])) ?></span><a download="<?= esc($answer['name'] ?? basename((string) $answer['file'])) ?>" href="<?= site_url('admin/submissions/' . $submission['id'] . '/question/' . $question['id'] . '/file') ?>">Download file</a></div>
                   <?php elseif ($isUnanswered): ?>
                     <div class="answer-box unanswered">Not answered</div>
                   <?php else: ?>
@@ -67,6 +65,7 @@
         <div class="notes"><label for="marker_notes">Reviewer notes</label><textarea id="marker_notes" name="marker_notes" placeholder="Add notes for this submission..."><?= esc($submission['marker_notes'] ?? '') ?></textarea></div>
         <div class="mark-footer"><div><div class="overall-label">Overall score</div><div class="overall-score"><span id="overallScore">0</span> / <?= esc(rtrim(rtrim(number_format($maxScore, 2, '.', ''), '0'), '.')) ?></div></div><button class="save-button" type="submit">Save marks</button></div>
       </form>
+      <?php if (!empty($activityLogs)): ?><section class="activity-log"><div class="label" style="margin-bottom:5px">Activity log</div><?php foreach ($activityLogs as $activity): ?><div class="activity-item"><div class="activity-title"><?= esc($activity['event']) ?></div><div class="activity-meta"><?= esc($activity['created_at']) ?> · Actor: <?= esc($activity['actor_name'] ?: ($activity['actor_username'] ?: ($activity['user_id'] ? 'User #' . $activity['user_id'] : 'System'))) ?><?php if ($activity['description']): ?> · <?= esc($activity['description']) ?><?php endif; ?></div></div><?php endforeach; ?></section><?php endif; ?>
     </div>
   </main>
 </div>

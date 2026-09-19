@@ -90,8 +90,6 @@
           <?php endif; ?>
         </div>
 
-        <?php if ($dashboardExam && $dashboardExam['has_submission']): ?><a href="<?= site_url('exam/submission-history') ?>" style="display:inline-block;margin:-20px 0 28px;color:var(--blue);font-size:13px;font-weight:600;">View submission history →</a><?php endif; ?>
-
         <?php if (false): ?>
 
         <?php if (! empty($submissionSummary)): ?><div style="border: 1px solid <?= ! empty($canEditSubmission) ? '#BFE0CE' : '#D7DEE8' ?>; background: <?= ! empty($canEditSubmission) ? '#F1FBF5' : '#F7F9FC' ?>; border-radius: 10px; padding: 18px 20px; margin-bottom: 24px;"><div style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Submission status: <?= ! empty($canEditSubmission) ? 'Submitted — edits are still open' : 'Submitted — editing is closed' ?></div><div style="font-size: 14px; color: var(--ink-muted); margin-bottom: 13px;">Reference <?= esc($submissionSummary['reference']) ?> · <?= esc($submissionSummary['submittedAt']) ?></div><?php if (! empty($canEditSubmission)): ?><a href="<?= site_url('exam') ?>" style="display:inline-block; background: var(--blue); color:#fff; border-radius:8px; padding:10px 15px; font-size:14px; font-weight:600;">Edit submission</a><?php else: ?><a href="<?= site_url('exam/submitted') ?>" style="display:inline-block; color:var(--blue); font-size:14px; font-weight:600;">View submission confirmation →</a><?php endif; ?></div><?php endif; ?>
@@ -647,8 +645,7 @@ function render() {
       action.style.cssText = "padding:8px 6px;border-bottom:1px solid #E5EDF5;text-align:right;";
       const link = document.createElement("a");
       link.href = attachment.url;
-      link.target = "_blank";
-      link.rel = "noopener";
+      link.download = attachment.name || "attachment";
       link.textContent = "Download";
       link.style.cssText = "color:#1769AA;font-weight:600;";
       action.appendChild(link);
