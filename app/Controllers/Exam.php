@@ -451,6 +451,12 @@ class Exam extends BaseController
             return $this->response->setStatusCode(404)->setBody('Attachment not found.');
         }
 
+        $originalName = trim((string) $originalName);
+        $extension = pathinfo($storedName, PATHINFO_EXTENSION);
+        if ($extension !== '' && pathinfo($originalName, PATHINFO_EXTENSION) === '') {
+            $originalName = rtrim($originalName, '. ') . '.' . $extension;
+        }
+
         return $this->response->download($path, null)->setFileName($originalName);
     }
 

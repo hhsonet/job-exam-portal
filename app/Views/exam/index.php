@@ -569,15 +569,34 @@ function render() {
     attachmentTitle.textContent = "Question attachments:";
     attachmentTitle.style.cssText = "font-weight:600;display:block;margin-bottom:7px;";
     attachmentInfo.appendChild(attachmentTitle);
-    attachments.forEach((attachment) => {
+    const attachmentTable = document.createElement("table");
+    attachmentTable.style.cssText = "width:100%;border-collapse:collapse;font-size:13px;";
+    const tableHead = document.createElement("thead");
+    tableHead.innerHTML = "<tr><th style=\"width:48px;text-align:left;padding:7px 6px;border-bottom:1px solid #D7E4F0;\">SL</th><th style=\"text-align:left;padding:7px 6px;border-bottom:1px solid #D7E4F0;\">File name</th><th style=\"text-align:right;padding:7px 6px;border-bottom:1px solid #D7E4F0;\">Action</th></tr>";
+    attachmentTable.appendChild(tableHead);
+    const tableBody = document.createElement("tbody");
+    attachments.forEach((attachment, attachmentIndex) => {
+      const row = document.createElement("tr");
+      const serial = document.createElement("td");
+      serial.textContent = attachmentIndex + 1;
+      serial.style.cssText = "padding:8px 6px;border-bottom:1px solid #E5EDF5;";
+      const fileName = document.createElement("td");
+      fileName.textContent = attachment.name;
+      fileName.style.cssText = "padding:8px 6px;border-bottom:1px solid #E5EDF5;word-break:break-word;";
+      const action = document.createElement("td");
+      action.style.cssText = "padding:8px 6px;border-bottom:1px solid #E5EDF5;text-align:right;";
       const link = document.createElement("a");
       link.href = attachment.url;
       link.target = "_blank";
       link.rel = "noopener";
-      link.textContent = "↧ " + attachment.name;
-      link.style.cssText = "display:block;color:#1769AA;font-weight:600;margin-top:4px;";
-      attachmentInfo.appendChild(link);
+      link.textContent = "Download";
+      link.style.cssText = "color:#1769AA;font-weight:600;";
+      action.appendChild(link);
+      row.append(serial, fileName, action);
+      tableBody.appendChild(row);
     });
+    attachmentTable.appendChild(tableBody);
+    attachmentInfo.appendChild(attachmentTable);
   }
 
   const isChoice = q.type !== "written" && q.type !== "upload";

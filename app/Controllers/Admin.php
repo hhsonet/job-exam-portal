@@ -405,6 +405,8 @@ class Admin extends BaseController
         }
 
         $attachments = [];
+        $attachmentNames = $this->request->getPost('attachment_names') ?? [];
+        $attachmentNames = is_array($attachmentNames) ? $attachmentNames : [];
         foreach ($this->request->getFileMultiple('attachments') ?? [] as $attachment) {
             if ($attachment->getError() === UPLOAD_ERR_NO_FILE) {
                 continue;
@@ -438,12 +440,17 @@ class Admin extends BaseController
             if (! is_dir($targetDir)) {
                 mkdir($targetDir, 0755, true);
             }
-            foreach ($attachments as $attachment) {
+            foreach ($attachments as $index => $attachment) {
                 $storedName = $attachment->getRandomName();
                 $attachment->move($targetDir, $storedName);
+                $displayName = trim((string) ($attachmentNames[$index] ?? ''));
+                if ($displayName !== '') {
+                    $displayName = basename(str_replace('\\', '/', $displayName));
+                    $displayName = preg_replace('/[\\x00-\\x1F\\x7F]/u', '', $displayName) ?: '';
+                }
                 db_connect()->table('question_attachments')->insert([
                     'question_id' => $questionId,
-                    'original_name' => $attachment->getClientName(),
+                    'original_name' => mb_substr($displayName ?: $attachment->getClientName(), 0, 255),
                     'stored_name' => $storedName,
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
@@ -489,6 +496,12 @@ class Admin extends BaseController
         $path = $storedName ? WRITEPATH . 'uploads/questions/' . $storedName : '';
         if (! $question || ! $storedName || ! is_file($path)) {
             return $this->response->setStatusCode(404)->setBody('Attachment not found.');
+        }
+
+        $originalName = trim((string) $originalName);
+        $extension = pathinfo($storedName, PATHINFO_EXTENSION);
+        if ($extension !== '' && pathinfo($originalName, PATHINFO_EXTENSION) === '') {
+            $originalName = rtrim($originalName, '. ') . '.' . $extension;
         }
 
         return $this->response->download($path, null)->setFileName($originalName);
