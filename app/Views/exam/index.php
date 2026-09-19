@@ -53,6 +53,7 @@
       <div class="brand-badge">UIU</div>
       <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">UIU Recruitment Portal</div>
       <div class="mono" style="margin-left: auto; font-size: 12px; color: var(--ink-faint); letter-spacing: 0.04em;">SECURE ASSESSMENT PORTAL</div>
+      <div class="currentDateTime mono" style="font-size: 12px; color: var(--ink-faint); white-space: nowrap;" title="Bangladesh time">Loading…</div>
       <a href="<?= site_url('logout') ?>" style="font-size: 13px; font-weight: 600; color: var(--blue); background: #FFFFFF; border: 1px solid var(--border-input); border-radius: 8px; padding: 9px 14px; text-decoration: none; white-space: nowrap;">Sign out</a>
     </div>
 
@@ -112,6 +113,7 @@
       </div>
 
       <div style="margin-left: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div class="currentDateTime mono" style="font-size: 12px; color: var(--ink-faint); white-space: nowrap;" title="Bangladesh time">Loading…</div>
         <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-muted); padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px;">
           <span id="statusDot" style="width: 9px; height: 9px; border-radius: 50%; background: var(--green-ink); flex: none; display: inline-block;"></span>
           <span id="statusText">Connected</span>
@@ -249,6 +251,7 @@
     <div style="border-bottom: 1px solid var(--border); padding: 18px 28px; display: flex; align-items: center; gap: 14px;">
       <div class="brand-badge">UIU</div>
       <div style="font-size: 16px; font-weight: 600;">UIU Recruitment Portal</div>
+      <div class="currentDateTime mono" style="margin-left: auto; font-size: 12px; color: var(--ink-faint); white-space: nowrap;" title="Bangladesh time">Loading…</div>
     </div>
     <div style="flex: 1; display: flex; justify-content: center; padding: 64px 28px;">
       <div style="width: 100%; max-width: 680px;">
@@ -322,6 +325,18 @@ const APPLICANT = <?= json_encode($applicant) ?>;
 const EXAM_ID = <?= (int) ($examId ?? 0) ?>;
 const TOTAL_SECONDS = <?= (int) $totalSeconds ?>;
 const INITIAL_SECONDS = <?= (int) ($secondsRemaining ?? 0) ?>;
+const SERVER_NOW_MS = <?= (int) round(microtime(true) * 1000) ?>;
+const CLIENT_CLOCK_START_MS = Date.now();
+const BANGLADESH_DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Dhaka",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: true
+});
 const UPLOAD_URL = <?= json_encode(site_url('exam/upload')) ?>;
 const AUTOSAVE_URL = <?= json_encode(site_url('exam/autosave')) ?>;
 const SUBMIT_URL = <?= json_encode(site_url('exam/submit')) ?>;
@@ -360,6 +375,15 @@ const state = {
 };
 
 const el = (id) => document.getElementById(id);
+
+function updateCurrentDateTime() {
+  const now = new Date(SERVER_NOW_MS + (Date.now() - CLIENT_CLOCK_START_MS));
+  const label = BANGLADESH_DATE_FORMATTER.format(now) + " BDT";
+  document.querySelectorAll(".currentDateTime").forEach((node) => { node.textContent = label; });
+}
+
+updateCurrentDateTime();
+setInterval(updateCurrentDateTime, 1000);
 
 function fmt(sec) {
   const m = Math.floor(sec / 60), s = sec % 60;

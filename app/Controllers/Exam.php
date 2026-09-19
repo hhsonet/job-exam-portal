@@ -604,7 +604,7 @@ class Exam extends BaseController
             ? $existing['reference']
             : 'NV-TS-' . strtoupper(bin2hex(random_bytes(2))) . '-' . strtoupper(bin2hex(random_bytes(2)));
         $submittedAtDb = date('Y-m-d H:i:s');
-        $submittedAt = date('d M Y, H:i') . ' IST';
+        $submittedAt = date('d M Y, H:i') . ' BDT';
         $answeredCount = count(array_filter($answers, static function ($value): bool {
             if (is_array($value)) {
                 return isset($value['file']) || count($value) > 0;

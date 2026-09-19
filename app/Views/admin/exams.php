@@ -14,6 +14,16 @@
     .state-open{background:#e8f4ee;color:#0f7b4f}.state-closed{background:#fdecec;color:#b3261e}.state-scheduled{background:#fdf3e3;color:#8a5a08}.state-draft{background:#edf1f6;color:#52627a}
     .metric{font-weight:700;color:#0b1f3a}.muted{color:#798196;font-size:12px}
     .remove-btn{padding:8px 10px;border:1px solid #f0cbd2;border-radius:7px;background:#fff6f7;color:#b8324b;font-size:12px;cursor:pointer;margin-top:6px}
+    .monitor-heading{display:flex;justify-content:space-between;align-items:end;gap:16px;margin:30px 0 14px}
+    .monitor-heading h2{margin:0;font-size:18px;letter-spacing:-.02em}.monitor-heading p{margin:5px 0 0;color:#798196;font-size:13px}
+    .monitor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(390px,1fr));gap:16px}
+    .monitor-card{background:#fff;border:1px solid #e8eaf0;border-radius:14px;padding:18px}
+    .monitor-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
+    .monitor-card-title{font-size:16px;font-weight:750;color:#0b1f3a}.monitor-card-meta{font-size:12px;color:#798196;margin-top:5px;line-height:1.5}
+    .monitor-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:16px}
+    .monitor-stat{background:#f7f9fc;border:1px solid #edf0f4;border-radius:8px;padding:9px 10px}.monitor-stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#8a93a3}.monitor-stat-value{font-size:14px;font-weight:750;color:#182033;margin-top:4px}
+    .applicant-progress{border-top:1px solid #edf0f4}.applicant-row{padding:12px 0;border-bottom:1px solid #edf0f4}.applicant-row:last-child{border-bottom:0;padding-bottom:0}.applicant-row-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.applicant-name{font-size:13px;font-weight:700;color:#182033;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.applicant-id{font-size:11px;color:#8a93a3;margin-left:5px;font-weight:500}.applicant-status{font-size:11px;font-weight:700;white-space:nowrap}.status-submitted{color:#0f7b4f}.status-progress{color:#168fd4}.status-not-started{color:#8a5a08}.progress-track{height:8px;background:#edf1f6;border-radius:999px;overflow:hidden;margin-top:8px}.progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#21bde1,#168fd4)}.progress-fill.submitted{background:#35bd86}.progress-fill.not-started{background:#d6dce5}.applicant-row-bottom{display:flex;justify-content:space-between;gap:10px;margin-top:6px;color:#798196;font-size:11px}.monitor-empty{font-size:13px;color:#798196;padding:8px 0 2px}
+    @media(max-width:680px){.monitor-grid{grid-template-columns:1fr}.monitor-stats{grid-template-columns:1fr 1fr}.monitor-stats .monitor-stat:last-child{grid-column:1/-1}}
   </style>
 </head>
 <body>
@@ -36,6 +46,42 @@
       <?php if (! $exams): ?>
         <div class="admin-card admin-empty">No exams have been created yet.</div>
       <?php else: ?>
+        <div class="monitor-heading">
+          <div><h2>Applicant completion monitor</h2><p>Track saved answers and final submissions for every assigned applicant.</p></div>
+          <span class="muted">Progress is based on answered questions</span>
+        </div>
+        <div class="monitor-grid">
+          <?php foreach ($exams as $exam): ?>
+            <section class="monitor-card">
+              <?php $monitorStateClass = strtolower($exam['display_status']) === 'open' ? 'state-open' : (strtolower($exam['display_status']) === 'closed' ? 'state-closed' : (strtolower($exam['display_status']) === 'scheduled' ? 'state-scheduled' : 'state-draft')); ?>
+              <div class="monitor-card-head">
+                <div><div class="monitor-card-title"><?= esc($exam['title']) ?></div><div class="monitor-card-meta"><?= (int) ($exam['duration_seconds'] / 60) ?> minutes · <?= $exam['start_at'] ? esc($exam['start_at']) : 'Available now' ?> to <?= $exam['end_at'] ? esc($exam['end_at']) : 'No closing time' ?></div></div>
+                <span class="state-pill <?= $monitorStateClass ?>"><?= esc($exam['display_status']) ?></span>
+              </div>
+              <div class="monitor-stats">
+                <div class="monitor-stat"><div class="monitor-stat-label">Applicants</div><div class="monitor-stat-value"><?= count($exam['applicants']) ?></div></div>
+                <div class="monitor-stat"><div class="monitor-stat-label">Submitted</div><div class="monitor-stat-value"><?= (int) $exam['submission_count'] ?></div></div>
+                <div class="monitor-stat"><div class="monitor-stat-label">Questions</div><div class="monitor-stat-value"><?= (int) $exam['question_count'] ?></div></div>
+              </div>
+              <?php if (! $exam['applicants']): ?>
+                <div class="monitor-empty">No applicants are assigned to this exam.</div>
+              <?php else: ?>
+                <div class="applicant-progress">
+                  <?php foreach ($exam['applicants'] as $applicant): ?>
+                    <?php $statusClass = $applicant['status'] === 'Submitted' ? 'status-submitted' : ($applicant['status'] === 'In progress' ? 'status-progress' : 'status-not-started'); $fillClass = $applicant['status'] === 'Submitted' ? 'submitted' : ($applicant['status'] === 'Not started' ? 'not-started' : ''); ?>
+                    <div class="applicant-row">
+                      <div class="applicant-row-top"><div class="applicant-name"><?= esc($applicant['name']) ?><span class="applicant-id"><?= esc($applicant['applicant_id']) ?></span></div><span class="applicant-status <?= $statusClass ?>"><?= esc($applicant['status']) ?></span></div>
+                      <div class="progress-track" aria-label="<?= esc($applicant['name']) ?> completion"><div class="progress-fill <?= $fillClass ?>" style="width:<?= (int) $applicant['progress'] ?>%"></div></div>
+                      <div class="applicant-row-bottom"><span><?= (int) $applicant['answered_count'] ?> / <?= (int) $applicant['total_count'] ?> answered</span><span><?= (int) $applicant['progress'] ?>%</span></div>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+            </section>
+          <?php endforeach; ?>
+        </div>
+
+        <div class="monitor-heading"><div><h2>Exam configuration</h2><p>Manage schedule, questions, submissions, and exam settings.</p></div></div>
         <div class="admin-table">
           <table>
             <thead>

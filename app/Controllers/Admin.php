@@ -170,6 +170,82 @@ class Admin extends BaseController
         }
         unset($exam);
 
+        $completionRows = db_connect()->query(
+            "SELECT u.full_name, u.applicant_code, u.assigned_exam_id,
+                    s.id AS submission_id, s.status AS submission_status,
+                    s.answered_count, s.total_count, s.submitted_at, s.time_used,
+                    s.answers AS submission_answers,
+                    a.id AS attempt_id, a.started_at AS attempt_started_at,
+                    a.answers AS attempt_answers
+             FROM users u
+             LEFT JOIN exam_attempts a
+                    ON a.exam_id = u.assigned_exam_id
+                   AND a.applicant_id = u.applicant_code
+             LEFT JOIN (
+                 SELECT s1.*
+                 FROM submissions s1
+                 INNER JOIN (
+                     SELECT MAX(id) AS id
+                     FROM submissions
+                     GROUP BY exam_id, applicant_id
+                 ) latest ON latest.id = s1.id
+             ) s ON s.exam_id = u.assigned_exam_id AND s.applicant_id = u.applicant_code
+             WHERE u.usertype = 'applicant'
+               AND u.assigned_exam_id IS NOT NULL
+             ORDER BY u.assigned_exam_id ASC, u.full_name ASC"
+        )->getResultArray();
+
+        $answeredFromJson = static function (?string $json): int {
+            $answers = $json ? json_decode($json, true) : [];
+            if (! is_array($answers)) {
+                return 0;
+            }
+
+            return count(array_filter($answers, static function (mixed $value): bool {
+                if (is_array($value)) {
+                    return isset($value['file']) || count($value) > 0;
+                }
+
+                return trim((string) $value) !== '';
+            }));
+        };
+
+        $applicantsByExam = [];
+        foreach ($completionRows as $row) {
+            $examId = (int) $row['assigned_exam_id'];
+            $examQuestionCount = 0;
+            foreach ($exams as $exam) {
+                if ((int) $exam['id'] === $examId) {
+                    $examQuestionCount = (int) $exam['question_count'];
+                    break;
+                }
+            }
+
+            $hasSubmission = ! empty($row['submission_id']);
+            $answeredCount = $hasSubmission
+                ? (int) $row['answered_count']
+                : $answeredFromJson($row['attempt_answers'] ?? null);
+            $totalCount = $examQuestionCount > 0 ? $examQuestionCount : (int) ($row['total_count'] ?? 0);
+            $progress = $totalCount > 0 ? min(100, (int) round(($answeredCount / $totalCount) * 100)) : 0;
+
+            $applicantsByExam[$examId][] = [
+                'name' => $row['full_name'],
+                'applicant_id' => $row['applicant_code'],
+                'answered_count' => $answeredCount,
+                'total_count' => $totalCount,
+                'progress' => $progress,
+                'status' => $hasSubmission ? 'Submitted' : (! empty($row['attempt_id']) ? 'In progress' : 'Not started'),
+                'started_at' => $row['attempt_started_at'],
+                'submitted_at' => $row['submitted_at'],
+                'time_used' => (int) ($row['time_used'] ?? 0),
+            ];
+        }
+
+        foreach ($exams as &$exam) {
+            $exam['applicants'] = $applicantsByExam[(int) $exam['id']] ?? [];
+        }
+        unset($exam);
+
         return view('admin/exams', ['exams' => $exams, 'error' => $this->request->getGet('error'), 'success' => $this->request->getGet('success')]);
     }
 
@@ -741,46 +817,83 @@ class Admin extends BaseController
         return view('admin/applicants', ['applicants' => $applicants]);
     }
 
-    public function applicantCredentials(int $id): ResponseInterface
+    public function downloadAllApplicantCredentials(): ResponseInterface
     {
         if ($redirect = $this->requireAdmin()) {
             return $redirect;
         }
 
-        $applicant = db_connect()->table('users')
-            ->where(['id' => $id, 'usertype' => 'applicant'])
-            ->get()->getRowArray();
-        if (! $applicant) {
-            return redirect()->to('/admin/applicants?error=' . rawurlencode('Applicant not found.'));
+        $db = db_connect();
+        $applicants = $db->table('users')
+            ->where('usertype', 'applicant')
+            ->orderBy('id', 'ASC')
+            ->get()->getResultArray();
+        if (! $applicants) {
+            return redirect()->to('/admin/applicants?error=' . rawurlencode('No applicants are available for credential download.'));
         }
 
-        $password = '';
-        if (! empty($applicant['credential_password'])) {
-            try {
-                $password = (string) service('encrypter')->decrypt(base64_decode((string) $applicant['credential_password'], true) ?: '');
-            } catch (\Throwable) {
-                $password = '';
+        $records = [];
+        $now = date('Y-m-d H:i:s');
+        try {
+            $db->transBegin();
+            foreach ($applicants as $applicant) {
+                $password = $this->generateApplicantPassword();
+                $updated = $db->table('users')->where(['id' => $applicant['id'], 'usertype' => 'applicant'])->update([
+                    'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                    'credential_password' => base64_encode(service('encrypter')->encrypt($password)),
+                    'updated_at' => $now,
+                ]);
+                if (! $updated) {
+                    throw new \RuntimeException('An applicant credential could not be updated.');
+                }
+                $records[] = [
+                    'name' => $applicant['full_name'],
+                    'applicantId' => $applicant['applicant_code'],
+                    'position' => $applicant['position'],
+                    'siteUrl' => rtrim(site_url(), '/') . '/',
+                    'username' => $applicant['username'] ?: $applicant['applicant_code'],
+                    'password' => $password,
+                ];
             }
-        }
-        if ($password === '') {
-            return redirect()->to('/admin/applicants?error=' . rawurlencode('Credential password is unavailable. Edit this applicant and set a password before downloading credentials.'));
+            $db->transCommit();
+        } catch (\Throwable $exception) {
+            $db->transRollback();
+            log_message('error', 'Applicant credential regeneration failed: {message}', ['message' => $exception->getMessage()]);
+            return redirect()->to('/admin/applicants?error=' . rawurlencode('Applicant credentials could not be generated. No credentials were downloaded.'));
         }
 
-        $pdf = CredentialPdf::make([
-            'name'       => $applicant['full_name'],
-            'applicantId'=> $applicant['applicant_code'],
-            'position'   => $applicant['position'],
-            'siteUrl'    => rtrim(site_url(), '/') . '/',
-            'username'   => $applicant['username'] ?: $applicant['applicant_code'],
-            'password'   => $password,
+        $this->auditAdmin('APPLICANT_CREDENTIALS_REGENERATED', 'applicants', null, [
+            'description' => 'Regenerated credentials for all applicants.',
+            'newValues' => ['applicant_count' => count($records)],
         ]);
-        $fileCode = preg_replace('/[^A-Za-z0-9._-]+/', '-', (string) $applicant['applicant_code']) ?: 'applicant';
+        $pdf = CredentialPdf::makeBatch($records);
 
         return $this->response
             ->setHeader('Content-Type', 'application/pdf')
-            ->setHeader('Content-Disposition', 'attachment; filename="applicant-credentials-' . $fileCode . '.pdf"')
+            ->setHeader('Content-Disposition', 'attachment; filename="applicant-credentials-all.pdf"')
             ->setHeader('Content-Length', (string) strlen($pdf))
             ->setBody($pdf);
+    }
+
+    private function generateApplicantPassword(): string
+    {
+        $letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $digits = '23456789';
+        $alphabet = $letters . $digits;
+        $characters = [
+            $letters[random_int(0, strlen($letters) - 1)],
+            $digits[random_int(0, strlen($digits) - 1)],
+        ];
+        for ($index = 2; $index < 6; $index++) {
+            $characters[] = $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
+
+        for ($index = count($characters) - 1; $index > 0; $index--) {
+            $swapIndex = random_int(0, $index);
+            [$characters[$index], $characters[$swapIndex]] = [$characters[$swapIndex], $characters[$index]];
+        }
+
+        return implode('', $characters);
     }
 
     public function newApplicant(): string|ResponseInterface

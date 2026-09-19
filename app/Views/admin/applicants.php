@@ -12,9 +12,8 @@ $errorMessage = service('request')->getGet('error');
   <title>Applicants - UIU Recruitment Portal Admin</title>
   <?= $this->include('admin/_styles') ?>
   <style>
-    .edit-btn,.credentials-btn{display:inline-block;padding:8px 11px;border-radius:7px;font-size:12px;font-weight:700;margin-right:5px;text-decoration:none}
+    .edit-btn{display:inline-block;padding:8px 11px;border-radius:7px;font-size:12px;font-weight:700;margin-right:5px;text-decoration:none}
     .edit-btn{background:#eaf6ff;color:#168fd4}
-    .credentials-btn{background:#eaf8ef;color:#187345}
     .delete-btn{padding:8px 10px;border:1px solid #f0cbd2;border-radius:7px;background:#fff6f7;color:#b8324b;font-size:12px;cursor:pointer}
     .error-box{margin-bottom:18px;padding:12px 14px;border-radius:8px;background:#fff0f0;color:#a32121}
   </style>
@@ -31,7 +30,12 @@ $errorMessage = service('request')->getGet('error');
     <div class="admin-content">
       <div class="admin-heading">
         <div><h1>Applicant Management</h1><p>Create, edit, and manage applicant access for technical assessments.</p></div>
-        <a class="admin-btn" href="<?= site_url('admin/applicants/create') ?>">+ Add applicant</a>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <form method="post" action="<?= site_url('admin/applicants/credentials') ?>" onsubmit="return confirm('Generate new 6-character passwords for all applicants and download their credentials? Existing applicant passwords will stop working.');">
+            <button class="admin-btn" type="submit">Download all credentials</button>
+          </form>
+          <a class="admin-btn" href="<?= site_url('admin/applicants/create') ?>">+ Add applicant</a>
+        </div>
       </div>
       <?php if ($errorMessage): ?><div class="error-box"><?= esc($errorMessage) ?></div><?php endif; ?>
       <?php if (!$applicants): ?>
@@ -48,7 +52,6 @@ $errorMessage = service('request')->getGet('error');
                 <td><?= esc($applicant['position']) ?></td>
                 <td><?= esc($applicant['created_at']) ?></td>
                 <td>
-                  <a class="credentials-btn" href="<?= site_url('admin/applicants/' . (int) $applicant['id'] . '/credentials') ?>">Download credentials</a>
                   <a class="edit-btn" href="<?= site_url('admin/applicants/' . (int) $applicant['id'] . '/edit') ?>">Edit</a>
                   <form style="display:inline" method="post" action="<?= site_url('admin/applicants/' . (int) $applicant['id'] . '/delete') ?>" onsubmit="return confirm('Delete this applicant? This cannot be undone.');">
                     <button class="delete-btn" type="submit">Delete</button>

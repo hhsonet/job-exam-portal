@@ -36,6 +36,7 @@
     <div style="width: 34px; height: 34px; border-radius: 7px; background: var(--blue); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">UIU</div>
     <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">UIU Recruitment Portal</div>
     <div class="mono" style="margin-left: auto; font-size: 12px; color: var(--ink-faint); letter-spacing: 0.04em;">SECURE ASSESSMENT PORTAL</div>
+    <div class="currentDateTime mono" style="font-size: 12px; color: var(--ink-faint); white-space: nowrap;" title="Bangladesh time">Loading…</div>
   </div>
 
   <div style="flex: 1; display: flex; flex-wrap: wrap; align-items: stretch;">
@@ -113,6 +114,27 @@
 <script>
 const LOGIN_URL = <?= json_encode(site_url('login')) ?>;
 const STORAGE_KEY = "examApplicantId";
+const SERVER_NOW_MS = <?= (int) round(microtime(true) * 1000) ?>;
+const CLIENT_CLOCK_START_MS = Date.now();
+const BANGLADESH_DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Dhaka",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: true
+});
+
+function updateCurrentDateTime() {
+  const now = new Date(SERVER_NOW_MS + (Date.now() - CLIENT_CLOCK_START_MS));
+  const label = BANGLADESH_DATE_FORMATTER.format(now) + " BDT";
+  document.querySelectorAll(".currentDateTime").forEach((node) => { node.textContent = label; });
+}
+
+updateCurrentDateTime();
+setInterval(updateCurrentDateTime, 1000);
 
 const idInput = document.getElementById("applicant-id");
 const pwInput = document.getElementById("exam-password");

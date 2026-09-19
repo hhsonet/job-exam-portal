@@ -4,7 +4,7 @@
   <nav class="admin-nav">
     <a class="<?= ($adminSection ?? '') === 'dashboard' ? 'active' : '' ?>" href="<?= site_url('admin') ?>"><span class="admin-icon">⌂</span><span>Dashboard</span></a>
     <a class="<?= ($adminSection ?? '') === 'applicants' ? 'active' : '' ?>" href="<?= site_url('admin/applicants') ?>"><span class="admin-icon">♙</span><span>Applicant Management</span></a>
-    <a class="<?= ($adminSection ?? '') === 'exams' ? 'active' : '' ?>" href="<?= site_url('admin/exams') ?>"><span class="admin-icon">▣</span><span>Exams</span></a>
+    <a class="<?= ($adminSection ?? '') === 'exams' ? 'active' : '' ?>" href="<?= site_url('admin/exams') ?>"><span class="admin-icon">▣</span><span>Exam management</span></a>
     <a class="<?= ($adminSection ?? '') === 'questions' ? 'active' : '' ?>" href="<?= site_url('admin/questions') ?>"><span class="admin-icon">▤</span><span>Questions</span></a>
     <a class="<?= ($adminSection ?? '') === 'submissions' ? 'active' : '' ?>" href="<?= site_url('admin/submissions') ?>"><span class="admin-icon">⚠</span><span>Submissions &amp; marks</span></a>
   </nav>

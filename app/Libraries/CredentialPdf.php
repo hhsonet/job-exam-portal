@@ -7,30 +7,52 @@ class CredentialPdf
     private const PAGE_WIDTH = 595;
     private const PAGE_HEIGHT = 842;
 
-    public static function make(array $data): string
+    public static function makeBatch(array $records): string
     {
-        $stream = '';
-        $cardWidth = 262;
-        $cardHeight = 384;
-        $positions = [
-            [28, 430],
-            [305, 430],
-            [28, 28],
-            [305, 28],
-        ];
-
-        foreach ($positions as [$x, $y]) {
-            self::drawCard($stream, $x, $y, $cardWidth, $cardHeight, $data);
+        $records = array_values($records);
+        if (! $records) {
+            throw new \InvalidArgumentException('At least one credential record is required.');
         }
 
+        $cardWidth = 262;
+        $cardHeight = 384;
+        $positions = [[28, 430], [305, 430], [28, 28], [305, 28]];
+        $streams = [];
+
+        foreach (array_chunk($records, 4) as $pageRecords) {
+            $stream = '';
+            foreach ($pageRecords as $index => $record) {
+                [$x, $y] = $positions[$index];
+                self::drawCard($stream, $x, $y, $cardWidth, $cardHeight, $record);
+            }
+            $streams[] = $stream;
+        }
+
+        return self::buildPdf($streams);
+    }
+
+    private static function buildPdf(array $streams): string
+    {
         $objects = [
             1 => '<< /Type /Catalog /Pages 2 0 R >>',
-            2 => '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-            3 => '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . self::PAGE_WIDTH . ' ' . self::PAGE_HEIGHT . '] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>',
-            4 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-            5 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
-            6 => '<< /Length ' . strlen($stream) . " >>\nstream\n" . $stream . "endstream",
+            2 => '',
+            3 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+            4 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
         ];
+        $pageObjects = [];
+        $nextObject = 5;
+
+        foreach ($streams as $stream) {
+            $pageObject = $nextObject++;
+            $contentObject = $nextObject++;
+            $pageObjects[] = $pageObject;
+            $objects[$pageObject] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . self::PAGE_WIDTH . ' ' . self::PAGE_HEIGHT . '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' . $contentObject . ' 0 R >>';
+            $objects[$contentObject] = '<< /Length ' . strlen($stream) . " >>\nstream\n" . $stream . "endstream";
+        }
+
+        $kids = implode(' ', array_map(static fn (int $number): string => $number . ' 0 R', $pageObjects));
+        $objects[2] = '<< /Type /Pages /Kids [' . $kids . '] /Count ' . count($pageObjects) . ' >>';
+        ksort($objects);
 
         $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
         $offsets = [0];
@@ -79,8 +101,7 @@ class CredentialPdf
 
         $siteY = $boxY - 15;
         self::text($stream, $left, $siteY, 'SITE URL', 8, 'F2', [0.35, 0.42, 0.52]);
-        $siteLines = self::wrap((string) ($data['siteUrl'] ?? ''), 39);
-        foreach ($siteLines as $index => $line) {
+        foreach (self::wrap((string) ($data['siteUrl'] ?? ''), 39) as $index => $line) {
             self::text($stream, $left, $siteY - 16 - ($index * 13), $line, 9, 'F1', [0.04, 0.12, 0.23]);
         }
 
