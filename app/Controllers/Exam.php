@@ -626,16 +626,82 @@ class Exam extends BaseController
             'updated_at' => $submittedAtDb,
         ];
 
-        $submissions = db_connect()->table('submissions');
-        if ($existing && ! $exam['allow_multiple_submissions']) {
-            $submissions->where('id', $existing['id'])->update($submissionData);
-        } else {
-            $submissionData['created_at'] = $submittedAtDb;
-            $submissions->insert($submissionData);
-        }
-        db_connect()->table('exam_attempts')
+        $db = db_connect();
+        $action = $existing ? 'RESUBMIT' : 'FINAL_SUBMIT';
+        $version = (int) $db->table('submission_logs')
             ->where(['exam_id' => $examId, 'applicant_id' => $applicant['applicant_code']])
-            ->update(['answers' => json_encode($answers), 'marked' => json_encode($marked), 'updated_at' => $submittedAtDb]);
+            ->countAllResults() + 1;
+        $questionSnapshot = $db->table('questions')
+            ->select('id, type, points, prompt')
+            ->where(['exam_id' => $examId, 'is_active' => 1])
+            ->orderBy('id', 'ASC')
+            ->get()->getResultArray();
+        $snapshotHash = $this->snapshotHash([
+            'exam' => ['id' => $examId, 'title' => $exam['title'], 'duration_seconds' => (int) $exam['duration_seconds']],
+            'version' => $version,
+            'questions' => $questionSnapshot,
+            'answers' => $answers,
+            'answered_count' => $answeredCount,
+            'time_used' => $timeUsed,
+        ]);
+        $deadlineAt = date('Y-m-d H:i:s', $deadline);
+        $submissionId = null;
+        $audit = new \App\Services\AuditLogService();
+
+        try {
+            $db->transBegin();
+            $submissions = $db->table('submissions');
+            if ($existing && ! $exam['allow_multiple_submissions']) {
+                $submissions->where('id', $existing['id'])->update($submissionData);
+                $submissionId = (int) $existing['id'];
+            } else {
+                $submissionData['created_at'] = $submittedAtDb;
+                $submissions->insert($submissionData);
+                $submissionId = (int) $db->insertID();
+            }
+            if (! $submissionId) {
+                throw new \RuntimeException('Submission record could not be created.');
+            }
+            $db->table('exam_attempts')
+                ->where(['exam_id' => $examId, 'applicant_id' => $applicant['applicant_code']])
+                ->update(['answers' => json_encode($answers), 'marked' => json_encode($marked), 'updated_at' => $submittedAtDb]);
+            $audit->logSubmission([
+                'submission_id' => $submissionId,
+                'exam_id' => $examId,
+                'application_reference' => $reference,
+                'application_version' => $version,
+                'user_id' => (int) $applicant['id'],
+                'applicant_id' => $applicant['applicant_code'],
+                'action' => $action,
+                'previous_status' => $existing['status'] ?? null,
+                'new_status' => 'submitted',
+                'submitted_at' => $submittedAtDb,
+                'deadline_at' => $deadlineAt,
+                'snapshot_hash' => $snapshotHash,
+                'remarks' => $autoSubmit ? 'Submitted automatically when exam time ended.' : null,
+            ], true, $db);
+            $audit->log($action === 'RESUBMIT' ? 'APPLICATION_RESUBMITTED' : 'APPLICATION_SUBMITTED', (int) $applicant['id'], [
+                'entityType' => 'submission',
+                'entityId' => (string) $submissionId,
+                'description' => $action === 'RESUBMIT' ? 'Applicant resubmitted an exam.' : 'Applicant submitted an exam.',
+                'metadata' => [
+                    'reference' => $reference,
+                    'exam_id' => $examId,
+                    'application_version' => $version,
+                    'deadline_at' => $deadlineAt,
+                    'snapshot_hash' => $snapshotHash,
+                ],
+            ], true, $db);
+            if (! $db->transStatus()) {
+                throw new \RuntimeException('Submission transaction failed.');
+            }
+            $db->transCommit();
+        } catch (\Throwable $exception) {
+            $db->transRollback();
+            log_message('error', 'Exam submission transaction failed: {message}', ['message' => $exception->getMessage()]);
+
+            return $this->response->setStatusCode(500)->setJSON(['error' => 'The submission could not be saved. Please try again.']);
+        }
 
         session()->set('submitted_exam_id', $examId);
 
@@ -673,5 +739,25 @@ class Exam extends BaseController
     {
         session()->set('exam_initial_screen', 'success');
         return $this->index();
+    }
+
+    public function submissionHistory(): string|ResponseInterface
+    {
+        if (! session()->get('exam_authenticated')) {
+            return redirect()->to('/login');
+        }
+        $applicant = $this->currentApplicant();
+        if (! $applicant) {
+            session()->destroy();
+            return redirect()->to('/login');
+        }
+
+        $history = db_connect()->table('submission_logs sl')
+            ->select('sl.action, sl.application_version, sl.application_reference, sl.submitted_at, e.title AS exam_title')
+            ->join('exams e', 'e.id = sl.exam_id', 'left')
+            ->where('sl.applicant_id', $applicant['applicant_code'])
+            ->orderBy('sl.id', 'DESC')->get()->getResultArray();
+
+        return view('exam/submission_history', ['applicant' => $this->applicantViewData($applicant, $this->assignedExam($applicant)), 'history' => $history]);
     }
 }

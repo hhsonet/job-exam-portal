@@ -6,6 +6,15 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class Admin extends BaseController
 {
+    private function auditAdmin(string $event, string $entityType, string|int|null $entityId, array $details = []): void
+    {
+        (new \App\Services\AuditLogService())->log($event, (int) session()->get('admin_id'), [
+            'actorType' => 'admin',
+            'entityType' => $entityType,
+            'entityId' => $entityId === null ? null : (string) $entityId,
+        ] + $details);
+    }
+
     private function requireAdmin(): ?ResponseInterface
     {
         if (! session()->get('admin_authenticated')) {
@@ -182,6 +191,12 @@ class Admin extends BaseController
         $db->table('questions')->where('exam_id', $id)->delete();
         $db->table('exams')->where('id', $id)->delete();
         $db->transComplete();
+        if ($db->transStatus()) {
+            $this->auditAdmin('EXAM_DELETED', 'exam', $id, [
+                'description' => 'Assessment deleted.',
+                'oldValues' => ['title' => $exam['title']],
+            ]);
+        }
 
         return redirect()->to('/admin/exams');
     }
@@ -219,6 +234,10 @@ class Admin extends BaseController
         $db->transComplete();
 
         if ($db->transStatus()) {
+            $this->auditAdmin('ADMIN_DELETE_SUBMISSIONS', $id > 0 ? 'exam' : 'submissions', $id > 0 ? $id : null, [
+                'description' => $id > 0 ? 'Submissions removed from an exam.' : 'All submissions removed.',
+                'metadata' => ['count' => $count],
+            ]);
             $uploadRoot = realpath(WRITEPATH . 'uploads/exam');
             foreach ($storedAnswerRows as $storedAnswerRow) {
                 $answers = $storedAnswerRow['answers'] ? (json_decode($storedAnswerRow['answers'], true) ?: []) : [];
@@ -310,13 +329,19 @@ class Admin extends BaseController
             return view('admin/exam_form', ['error' => 'Exam title is required.', 'data' => $data, 'formAction' => site_url('admin/exams/create'), 'formTitle' => 'Create assessment', 'submitLabel' => 'Create assessment and add questions']);
         }
 
-        db_connect()->table('exams')->insert([
+        $db = db_connect();
+        $db->table('exams')->insert([
             'title' => $data['title'], 'description' => $data['description'] ?: null,
             'duration_seconds' => $data['duration_minutes'] * 60, 'status' => 'draft',
             'start_at' => $data['start_at'] ? date('Y-m-d H:i:s', strtotime($data['start_at'])) : null,
             'end_at' => $data['end_at'] ? date('Y-m-d H:i:s', strtotime($data['end_at'])) : null,
             'allow_multiple_submissions' => $data['allow_multiple_submissions'],
             'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $examId = (int) $db->insertID();
+        $this->auditAdmin('EXAM_CREATED', 'exam', $examId, [
+            'description' => 'Assessment created.',
+            'newValues' => ['title' => $data['title'], 'status' => 'draft', 'duration_minutes' => $data['duration_minutes']],
         ]);
 
         return redirect()->to('/admin/exams');
@@ -328,6 +353,7 @@ class Admin extends BaseController
             return $redirect;
         }
 
+        $currentExam = db_connect()->table('exams')->where('id', $id)->get()->getRowArray();
         $data = [
             'title' => trim((string) $this->request->getPost('title')),
             'description' => trim((string) $this->request->getPost('description')),
@@ -354,6 +380,11 @@ class Admin extends BaseController
         db_connect()->table('users')
             ->where(['assigned_exam_id' => $id, 'usertype' => 'applicant'])
             ->update(['position' => $data['title'], 'updated_at' => date('Y-m-d H:i:s')]);
+        $this->auditAdmin($currentExam && $currentExam['status'] !== $data['status'] ? 'ADMIN_STATUS_CHANGE' : 'EXAM_UPDATED', 'exam', $id, [
+            'description' => 'Assessment settings updated.',
+            'oldValues' => $currentExam ? ['title' => $currentExam['title'], 'status' => $currentExam['status'], 'duration_seconds' => $currentExam['duration_seconds']] : null,
+            'newValues' => ['title' => $data['title'], 'status' => $data['status'], 'duration_seconds' => $data['duration_minutes'] * 60],
+        ]);
 
         return redirect()->to('/admin/exams');
     }
@@ -481,6 +512,11 @@ class Admin extends BaseController
                 ]);
             }
         }
+
+        $this->auditAdmin('QUESTION_CREATED', 'question', $questionId, [
+            'description' => 'Question created.',
+            'newValues' => ['exam_id' => $data['exam_id'], 'type' => $data['type'], 'points' => $data['points']],
+        ]);
 
         return redirect()->to('/admin/questions');
     }
@@ -637,6 +673,11 @@ class Admin extends BaseController
             }
         }
 
+        $this->auditAdmin('QUESTION_UPDATED', 'question', $id, [
+            'description' => 'Question updated.',
+            'newValues' => ['exam_id' => $data['exam_id'], 'type' => $data['type'], 'points' => $data['points']],
+        ]);
+
         return redirect()->to('/admin/questions');
     }
 
@@ -646,7 +687,15 @@ class Admin extends BaseController
             return $redirect;
         }
 
-        db_connect()->table('questions')->where('id', $id)->delete();
+        $db = db_connect();
+        $question = $db->table('questions')->where('id', $id)->get()->getRowArray();
+        $db->table('questions')->where('id', $id)->delete();
+        if ($question) {
+            $this->auditAdmin('QUESTION_DELETED', 'question', $id, [
+                'description' => 'Question deleted.',
+                'oldValues' => ['exam_id' => $question['exam_id'], 'type' => $question['type'], 'points' => $question['points']],
+            ]);
+        }
 
         return redirect()->to('/admin/questions');
     }
@@ -747,11 +796,17 @@ class Admin extends BaseController
             return view('admin/applicant_form', ['error' => 'That applicant ID is already in use.', 'data' => $data, 'exams' => $exams, 'formAction' => site_url('admin/applicants/create'), 'formTitle' => 'Add applicant', 'submitLabel' => 'Create applicant']);
         }
 
-        db_connect()->table('users')->insert([
+        $db = db_connect();
+        $db->table('users')->insert([
             'username' => $data['applicant_code'], 'full_name' => $data['full_name'],
             'applicant_code' => $data['applicant_code'], 'position' => $assignedExam['title'], 'assigned_exam_id' => (int) $assignedExam['id'],
             'password_hash' => password_hash($data['password'], PASSWORD_DEFAULT), 'usertype' => 'applicant',
             'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $applicantId = (int) $db->insertID();
+        $this->auditAdmin('APPLICANT_CREATED', 'applicant', $applicantId, [
+            'description' => 'Applicant account created.',
+            'newValues' => ['applicant_code' => $data['applicant_code'], 'assigned_exam_id' => (int) $assignedExam['id']],
         ]);
 
         return redirect()->to('/admin/applicants');
@@ -796,6 +851,13 @@ class Admin extends BaseController
             $db->table('exam_attempts')->where('applicant_id', $currentApplicant['applicant_code'])->update(['applicant_id' => $data['applicant_code']]);
         }
         $db->transComplete();
+        if ($db->transStatus()) {
+            $this->auditAdmin('APPLICANT_UPDATED', 'applicant', $id, [
+                'description' => 'Applicant account updated.',
+                'oldValues' => ['applicant_code' => $currentApplicant['applicant_code'], 'assigned_exam_id' => $currentApplicant['assigned_exam_id']],
+                'newValues' => ['applicant_code' => $data['applicant_code'], 'assigned_exam_id' => $data['assigned_exam_id']],
+            ]);
+        }
         return redirect()->to('/admin/applicants');
     }
 
@@ -812,6 +874,10 @@ class Admin extends BaseController
             db_connect()->table('exam_attempts')->where('applicant_id', $applicantCode)->delete();
         }
         db_connect()->table('users')->where(['id' => $id, 'usertype' => 'applicant'])->delete();
+        $this->auditAdmin('APPLICANT_DELETED', 'applicant', $id, [
+            'description' => 'Applicant account deleted.',
+            'oldValues' => ['applicant_code' => $applicantCode],
+        ]);
         return redirect()->to('/admin/applicants');
     }
 
@@ -877,6 +943,122 @@ class Admin extends BaseController
         if ($redirect = $this->requireAdmin()) return $redirect;
         $path = FCPATH . 'downloads/applicant_import_template.csv';
         return $this->response->download($path, null)->setFileName('applicant_import_template.csv');
+    }
+
+    private function auditQuery(array $filters)
+    {
+        $query = db_connect()->table('audit_logs a')
+            ->select('a.*, u.full_name AS actor_name, u.username AS actor_username')
+            ->join('users u', 'u.id = a.user_id', 'left');
+        if ($filters['date_from'] !== '') {
+            $query->where('a.created_at >=', $filters['date_from'] . ' 00:00:00');
+        }
+        if ($filters['date_to'] !== '') {
+            $query->where('a.created_at <=', $filters['date_to'] . ' 23:59:59');
+        }
+        if ($filters['event'] !== '') {
+            $query->where('a.event', $filters['event']);
+        }
+        if ($filters['user'] !== '') {
+            $query->groupStart()
+                ->like('a.user_id', $filters['user'])
+                ->orLike('u.full_name', $filters['user'])
+                ->orLike('u.username', $filters['user'])
+                ->groupEnd();
+        }
+        if ($filters['reference'] !== '') {
+            $query->groupStart()
+                ->like('a.entity_id', $filters['reference'])
+                ->orLike('a.metadata', $filters['reference'])
+                ->groupEnd();
+        }
+        if ($filters['ip'] !== '') {
+            $query->like('a.ip_address', $filters['ip']);
+        }
+        if ($filters['device'] !== '') {
+            $query->where('a.device_type', $filters['device']);
+        }
+        if ($filters['browser'] !== '') {
+            $query->like('a.browser', $filters['browser']);
+        }
+
+        return $query;
+    }
+
+    public function auditLogs(): string|ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $filters = [
+            'date_from' => trim((string) $this->request->getGet('date_from')),
+            'date_to' => trim((string) $this->request->getGet('date_to')),
+            'event' => trim((string) $this->request->getGet('event')),
+            'user' => trim((string) $this->request->getGet('user')),
+            'reference' => trim((string) $this->request->getGet('reference')),
+            'ip' => trim((string) $this->request->getGet('ip')),
+            'device' => trim((string) $this->request->getGet('device')),
+            'browser' => trim((string) $this->request->getGet('browser')),
+        ];
+        $page = max(1, (int) $this->request->getGet('page'));
+        $perPage = 25;
+        $total = $this->auditQuery($filters)->countAllResults();
+        $logs = $this->auditQuery($filters)->orderBy('a.id', 'DESC')->limit($perPage, ($page - 1) * $perPage)->get()->getResultArray();
+        foreach ($logs as &$log) {
+            $metadata = $log['metadata'] ? (json_decode($log['metadata'], true) ?: []) : [];
+            $log['reference'] = $metadata['reference'] ?? $log['entity_id'];
+        }
+        unset($log);
+
+        $events = db_connect()->table('audit_logs')->select('event')->distinct()->orderBy('event', 'ASC')->get()->getResultArray();
+
+        return view('admin/audit_logs', [
+            'logs' => $logs,
+            'filters' => $filters,
+            'events' => $events,
+            'page' => $page,
+            'totalPages' => max(1, (int) ceil($total / $perPage)),
+        ]);
+    }
+
+    public function loginHistory(): string|ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $dateFrom = trim((string) $this->request->getGet('date_from'));
+        $dateTo = trim((string) $this->request->getGet('date_to'));
+        $user = trim((string) $this->request->getGet('user'));
+        $status = trim((string) $this->request->getGet('status'));
+        $ip = trim((string) $this->request->getGet('ip'));
+        $device = trim((string) $this->request->getGet('device'));
+        $browser = trim((string) $this->request->getGet('browser'));
+        $makeQuery = static function () use ($dateFrom, $dateTo, $user, $status, $ip, $device, $browser) {
+            $query = db_connect()->table('login_logs l')
+                ->select('l.*, u.full_name AS user_name, u.username')
+                ->join('users u', 'u.id = l.user_id', 'left');
+            if ($dateFrom !== '') $query->where('l.created_at >=', $dateFrom . ' 00:00:00');
+            if ($dateTo !== '') $query->where('l.created_at <=', $dateTo . ' 23:59:59');
+            if ($user !== '') $query->groupStart()->like('l.login_identifier', $user)->orLike('u.full_name', $user)->orLike('u.username', $user)->groupEnd();
+            if ($status !== '') $query->where('l.status', $status);
+            if ($ip !== '') $query->like('l.ip_address', $ip);
+            if ($device !== '') $query->where('l.device_type', $device);
+            if ($browser !== '') $query->like('l.browser', $browser);
+            return $query;
+        };
+        $page = max(1, (int) $this->request->getGet('page'));
+        $perPage = 25;
+        $total = $makeQuery()->countAllResults();
+        $logs = $makeQuery()->orderBy('l.id', 'DESC')->limit($perPage, ($page - 1) * $perPage)->get()->getResultArray();
+
+        return view('admin/login_history', [
+            'logs' => $logs,
+            'filters' => compact('dateFrom', 'dateTo', 'user', 'status', 'ip', 'device', 'browser'),
+            'page' => $page,
+            'totalPages' => max(1, (int) ceil($total / $perPage)),
+        ]);
     }
 
     public function submissions(): string|ResponseInterface
@@ -1056,6 +1238,11 @@ class Admin extends BaseController
             return redirect()->to(site_url('admin/submissions/' . $id . '?error=' . rawurlencode('Marks could not be saved. Please try again.')));
         }
 
+        $this->auditAdmin('REVIEW_SUBMITTED', 'submission', $id, [
+            'description' => 'Reviewer marks saved.',
+            'newValues' => ['score' => $score, 'max_score' => $maxScore, 'status' => 'marked'],
+        ]);
+
         return redirect()->to(site_url('admin/submissions/' . $id . '?success=' . rawurlencode('Question marks saved. Overall score: ' . rtrim(rtrim(number_format($score, 2, '.', ''), '0'), '.') . ' / ' . rtrim(rtrim(number_format($maxScore, 2, '.', ''), '0'), '.') . '.')));
     }
 
@@ -1108,6 +1295,11 @@ class Admin extends BaseController
         unset($question);
 
         $maxScore = array_sum(array_map(static fn (array $question): float => (float) $question['points'], $questions));
+        $activityLogs = $db->table('audit_logs a')
+            ->select('a.*, u.full_name AS actor_name, u.username AS actor_username')
+            ->join('users u', 'u.id = a.user_id', 'left')
+            ->where(['a.entity_type' => 'submission', 'a.entity_id' => (string) $id])
+            ->orderBy('a.id', 'DESC')->get()->getResultArray();
         $submissionIds = array_map(
             static fn (array $row): int => (int) $row['id'],
             $db->table('submissions s')
@@ -1134,6 +1326,7 @@ class Admin extends BaseController
             'maxScore' => $maxScore,
             'previousSubmissionId' => $previousSubmissionId,
             'nextSubmissionId' => $nextSubmissionId,
+            'activityLogs' => $activityLogs,
         ]);
     }
 

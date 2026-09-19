@@ -53,6 +53,7 @@
       <div class="brand-badge">UIU</div>
       <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">UIU Recruitment Portal</div>
       <div class="mono" style="margin-left: auto; font-size: 12px; color: var(--ink-faint); letter-spacing: 0.04em;">SECURE ASSESSMENT PORTAL</div>
+      <a href="<?= site_url('logout') ?>" style="font-size: 13px; font-weight: 600; color: var(--blue); background: #FFFFFF; border: 1px solid var(--border-input); border-radius: 8px; padding: 9px 14px; text-decoration: none; white-space: nowrap;">Sign out</a>
     </div>
 
     <div style="flex: 1; display: flex; justify-content: center; padding: 48px 28px 72px;">
@@ -89,6 +90,7 @@
           <?php endif; ?>
         </div>
 
+        <?php if ($dashboardExam && $dashboardExam['has_submission']): ?><a href="<?= site_url('exam/submission-history') ?>" style="display:inline-block;margin:-20px 0 28px;color:var(--blue);font-size:13px;font-weight:600;">View submission history →</a><?php endif; ?>
 
         <?php if (false): ?>
 
@@ -211,6 +213,7 @@
 
         <div id="progressSentence" style="font-size: 14px; color: var(--ink-muted); line-height: 1.55; margin-bottom: 18px;"></div>
 
+        <button id="saveBtn" class="btn" style="width: 100%; margin-bottom: 10px; background: #FFFFFF;">Save</button>
         <button id="openSubmitBtn" style="width: 100%; padding: 14px 18px; font-size: 16px; font-weight: 600; color: #FFFFFF; background: var(--navy); border: none; border-radius: 10px; cursor: pointer;">Submit exam</button>
 
         <div style="margin-top: 20px; font-size: 13px; color: var(--ink-faint); line-height: 1.6;">
@@ -302,9 +305,14 @@
         <div style="font-size: 15px; line-height: 1.55; color: #8A2020;">Unanswered questions are scored as zero. You still have time to go back.</div>
       </div>
 
+      <label style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 22px; font-size: 15px; line-height: 1.5; color: var(--ink-muted); cursor: pointer;">
+        <input id="confirmSubmission" type="checkbox" style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--blue); cursor: pointer;">
+        <span>I am sure I want to submit this exam.</span>
+      </label>
+
       <div style="display: flex; gap: 12px; flex-wrap: wrap;">
         <button id="keepWorkingBtn" style="flex: 1 1 160px; padding: 14px 18px; font-size: 16px; font-weight: 600; color: var(--navy); background: #FFFFFF; border: 1px solid var(--border-input); border-radius: 10px; cursor: pointer;">Keep working</button>
-        <button id="confirmSubmitBtn" style="flex: 1 1 160px; padding: 14px 18px; font-size: 16px; font-weight: 600; color: #FFFFFF; background: var(--blue); border: none; border-radius: 10px; cursor: pointer;">Submit exam</button>
+        <button id="confirmSubmitBtn" disabled style="flex: 1 1 160px; padding: 14px 18px; font-size: 16px; font-weight: 600; color: #FFFFFF; background: #A9B4C4; border: none; border-radius: 10px; cursor: not-allowed;">Submit exam</button>
       </div>
     </div>
   </div>
@@ -323,6 +331,7 @@ const SUBMIT_URL = <?= json_encode(site_url('exam/submit')) ?>;
 const QUESTIONS = <?= json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 const SAVED_ANSWERS = <?= json_encode($savedAnswers ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 const CAN_EDIT_SUBMISSION = <?= !empty($canEditSubmission) ? 'true' : 'false' ?>;
+const HAS_EXISTING_SUBMISSION = <?= !empty($submissionSummary) ? 'true' : 'false' ?>;
 const SUBMITTED_URL = <?= json_encode(site_url('exam/submitted')) ?>;
 const DRAFT_KEY = "exam-draft-" + APPLICANT.id + "-" + EXAM_ID;
 let LOCAL_DRAFT = {};
@@ -340,6 +349,7 @@ const state = {
   offline: !navigator.onLine,
   saveState: "saved",
   showSubmitModal: false,
+  confirmSubmission: false,
   fullscreen: false,
   autoSubmitStep: 0,
   submittedAt: <?= json_encode($submissionSummary['submittedAt'] ?? null) ?>,
@@ -432,6 +442,14 @@ function markSaving() {
   render();
 }
 
+async function manualSave() {
+  clearTimeout(markSaving._t);
+  state.saveState = "saving";
+  cacheDraft();
+  render();
+  await saveDraft();
+}
+
 function select(q, key) {
   const answers = Object.assign({}, state.answers);
   if (q.type === "multi") {
@@ -492,6 +510,12 @@ function removeFile(q) {
 function beginAutoSubmit() {
   setTimeout(() => { state.autoSubmitStep = 1; render(); }, 900);
   setTimeout(() => { finish(); }, 2600);
+}
+
+function openSubmitModal() {
+  state.showSubmitModal = true;
+  state.confirmSubmission = false;
+  render();
 }
 
 async function finish() {
@@ -715,6 +739,9 @@ function render() {
 
 
   el("saveLine").textContent = state.offline ? "Saved on this device" : state.saveState === "saving" ? "Saving…" : "All answers saved";
+  el("saveBtn").disabled = state.saveState === "saving" || state.isSubmitting;
+  el("saveBtn").style.opacity = el("saveBtn").disabled ? "0.6" : "1";
+  el("saveBtn").style.cursor = el("saveBtn").disabled ? "not-allowed" : "pointer";
 
   // Submit modal
   el("submitModal").classList.toggle("hidden", !state.showSubmitModal);
@@ -724,6 +751,11 @@ function render() {
   el("modalTime").textContent = fmt(secs);
   el("unansweredWarning").classList.toggle("hidden", unansweredCount === 0);
   el("unansweredHeadline").textContent = unansweredCount === 1 ? "1 question has no answer" : unansweredCount + " questions have no answer";
+  el("confirmSubmission").checked = state.confirmSubmission;
+  el("confirmSubmission").disabled = state.isSubmitting;
+  el("confirmSubmitBtn").disabled = !state.confirmSubmission || state.isSubmitting;
+  el("confirmSubmitBtn").style.background = el("confirmSubmitBtn").disabled ? "#A9B4C4" : "var(--blue)";
+  el("confirmSubmitBtn").style.cursor = el("confirmSubmitBtn").disabled ? "not-allowed" : "pointer";
 
 }
 
@@ -789,14 +821,16 @@ el("dropZone").addEventListener("drop", (e) => {
 });
 
 el("prevBtn").addEventListener("click", () => go(state.index - 1));
+el("saveBtn").addEventListener("click", manualSave);
 el("nextBtn").addEventListener("click", () => {
-  if (state.index === QUESTIONS.length - 1) { state.showSubmitModal = true; render(); }
+  if (state.index === QUESTIONS.length - 1) openSubmitModal();
   else go(state.index + 1);
 });
 
-el("openSubmitBtn").addEventListener("click", () => { state.showSubmitModal = true; render(); });
+el("openSubmitBtn").addEventListener("click", openSubmitModal);
 el("keepWorkingBtn").addEventListener("click", () => { state.showSubmitModal = false; render(); });
-el("confirmSubmitBtn").addEventListener("click", () => finish());
+el("confirmSubmission").addEventListener("change", (e) => { state.confirmSubmission = e.target.checked; render(); });
+el("confirmSubmitBtn").addEventListener("click", () => { if (state.confirmSubmission) finish(); });
 
 el("restartBtn").addEventListener("click", () => { window.location.href = <?= json_encode(site_url('exam/dashboard')) ?>; });
 
@@ -838,7 +872,7 @@ setInterval(() => {
 }, 1000);
 
 render();
-if (state.screen === "expired" && !state.finalReference) beginAutoSubmit();
+if (state.screen === "expired" && !HAS_EXISTING_SUBMISSION && !state.finalReference) beginAutoSubmit();
 </script>
 </body>
 </html>
