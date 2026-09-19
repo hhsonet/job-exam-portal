@@ -41,6 +41,7 @@ $routes->post('admin/submissions/(:num)/mark', 'Admin::markSubmission/$1');
 $routes->get('admin/audit-logs', 'Admin::auditLogs');
 $routes->get('admin/login-history', 'Admin::loginHistory');
 $routes->get('admin/applicants', 'Admin::applicants');
+$routes->get('admin/applicants/(:num)/credentials', 'Admin::applicantCredentials/$1');
 $routes->get('admin/applicants/new', 'Admin::newApplicant');
 $routes->get('admin/applicants/create', 'Admin::newApplicant');
 $routes->get('admin/applicants/(:num)/edit', 'Admin::editApplicant/$1');

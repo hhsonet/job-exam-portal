@@ -147,7 +147,7 @@
             <div id="pointsLabel" style="font-size: 13px; color: var(--ink-faint);"></div>
           </div>
 
-          <h2 id="promptText" style="margin: 0 0 10px; font-size: 26px; line-height: 1.35; font-weight: 600; letter-spacing: -0.015em;"></h2>
+          <h2 id="promptText" style="margin: 0 0 10px; font-size: 26px; line-height: 1.35; font-weight: 400; text-align: justify; letter-spacing: -0.015em;"></h2>
           <p id="hintText" style="margin: 0 0 28px; font-size: 15px; color: var(--ink-faint); line-height: 1.55;"></p>
           <div id="attachmentInfo" class="hidden" style="margin: -12px 0 24px; padding: 13px 16px; border: 1px solid #D7E4F0; border-radius: 9px; background: #F5FAFF; font-size: 14px; color: #274B68;"></div>
 

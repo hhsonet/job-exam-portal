@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\CredentialPdf;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Admin extends BaseController
@@ -740,6 +741,48 @@ class Admin extends BaseController
         return view('admin/applicants', ['applicants' => $applicants]);
     }
 
+    public function applicantCredentials(int $id): ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $applicant = db_connect()->table('users')
+            ->where(['id' => $id, 'usertype' => 'applicant'])
+            ->get()->getRowArray();
+        if (! $applicant) {
+            return redirect()->to('/admin/applicants?error=' . rawurlencode('Applicant not found.'));
+        }
+
+        $password = '';
+        if (! empty($applicant['credential_password'])) {
+            try {
+                $password = (string) service('encrypter')->decrypt(base64_decode((string) $applicant['credential_password'], true) ?: '');
+            } catch (\Throwable) {
+                $password = '';
+            }
+        }
+        if ($password === '') {
+            return redirect()->to('/admin/applicants?error=' . rawurlencode('Credential password is unavailable. Edit this applicant and set a password before downloading credentials.'));
+        }
+
+        $pdf = CredentialPdf::make([
+            'name'       => $applicant['full_name'],
+            'applicantId'=> $applicant['applicant_code'],
+            'position'   => $applicant['position'],
+            'siteUrl'    => rtrim(site_url(), '/') . '/',
+            'username'   => $applicant['username'] ?: $applicant['applicant_code'],
+            'password'   => $password,
+        ]);
+        $fileCode = preg_replace('/[^A-Za-z0-9._-]+/', '-', (string) $applicant['applicant_code']) ?: 'applicant';
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'attachment; filename="applicant-credentials-' . $fileCode . '.pdf"')
+            ->setHeader('Content-Length', (string) strlen($pdf))
+            ->setBody($pdf);
+    }
+
     public function newApplicant(): string|ResponseInterface
     {
         if ($redirect = $this->requireAdmin()) {
@@ -800,7 +843,7 @@ class Admin extends BaseController
         $db->table('users')->insert([
             'username' => $data['applicant_code'], 'full_name' => $data['full_name'],
             'applicant_code' => $data['applicant_code'], 'position' => $assignedExam['title'], 'assigned_exam_id' => (int) $assignedExam['id'],
-            'password_hash' => password_hash($data['password'], PASSWORD_DEFAULT), 'usertype' => 'applicant',
+            'password_hash' => password_hash($data['password'], PASSWORD_DEFAULT), 'credential_password' => base64_encode(service('encrypter')->encrypt($data['password'])), 'usertype' => 'applicant',
             'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
         ]);
         $applicantId = (int) $db->insertID();
@@ -843,6 +886,7 @@ class Admin extends BaseController
         $update = ['full_name' => $data['full_name'], 'applicant_code' => $data['applicant_code'], 'position' => $assignedExam['title'], 'assigned_exam_id' => (int) $assignedExam['id'], 'username' => $data['applicant_code'], 'updated_at' => date('Y-m-d H:i:s')];
         if ($data['password'] !== '') {
             $update['password_hash'] = password_hash($data['password'], PASSWORD_DEFAULT);
+            $update['credential_password'] = base64_encode(service('encrypter')->encrypt($data['password']));
         }
         $db->transStart();
         $db->table('users')->where(['id' => $id, 'usertype' => 'applicant'])->update($update);
@@ -928,7 +972,7 @@ class Admin extends BaseController
                 $errors[] = "Row {$line}: applicant ID {$applicantId} already exists.";
                 continue;
             }
-            $rows[$applicantId] = ['username' => $applicantId, 'full_name' => $name, 'applicant_code' => $applicantId, 'position' => $exam['title'], 'assigned_exam_id' => (int) $exam['id'], 'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'usertype' => 'applicant', 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')];
+            $rows[$applicantId] = ['username' => $applicantId, 'full_name' => $name, 'applicant_code' => $applicantId, 'position' => $exam['title'], 'assigned_exam_id' => (int) $exam['id'], 'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'credential_password' => base64_encode(service('encrypter')->encrypt($password)), 'usertype' => 'applicant', 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')];
         }
         if (is_resource($handle)) fclose($handle);
         if ($errors) {
