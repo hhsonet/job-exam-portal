@@ -9,6 +9,7 @@ class Exam extends BaseController
     private const TOTAL_SECONDS = 45 * 60;
     private const MAX_ATTEMPTS = 5;
     private const LOCKOUT_SECONDS = 15 * 60;
+    private const AUTO_SUBMIT_GRACE_SECONDS = 30;
 
     private function requireAuth(): ?ResponseInterface
     {
@@ -135,12 +136,7 @@ class Exam extends BaseController
 
     private function secondsRemaining(array $exam, array $attempt, bool $hasSubmission): int
     {
-        $now = time();
-        if ($hasSubmission && $exam['end_at']) {
-            return max(0, strtotime($exam['end_at']) - $now);
-        }
-
-        return max(0, $this->attemptDeadline($exam, $attempt) - $now);
+        return max(0, $this->attemptDeadline($exam, $attempt) - time());
     }
 
     private function attemptDeadline(array $exam, array $attempt): int
@@ -239,17 +235,30 @@ class Exam extends BaseController
 
         if ($assignedExam && $assignedExam['status'] !== 'archived') {
             $dashboardSubmission = $this->submissionFor((int) $assignedExam['id'], (string) $applicant['applicant_code']);
+            $dashboardAttempt = $this->attemptFor((int) $assignedExam['id'], (string) $applicant['applicant_code']);
             $assignedExam['display_status'] = $this->displayStatus($assignedExam, $now);
             $assignedExam['question_count'] = $this->questionCount((int) $assignedExam['id']);
             $assignedExam['has_submission'] = (bool) $dashboardSubmission;
             $assignedExam['submission_status'] = $dashboardSubmission['status'] ?? 'Not submitted';
+            if (! $dashboardSubmission && $dashboardAttempt && $this->secondsRemaining($assignedExam, $dashboardAttempt, false) < 1) {
+                $assignedExam['submission_status'] = 'Exam time ended';
+            }
             $assignedExam['submitted_at'] = $dashboardSubmission['submitted_at'] ?? null;
             $assignedExam['time_used'] = $dashboardSubmission ? (int) $dashboardSubmission['time_used'] : null;
             $assignedExam['answered_count'] = $dashboardSubmission ? (int) $dashboardSubmission['answered_count'] : 0;
             $assignedExam['total_count'] = $dashboardSubmission ? (int) $dashboardSubmission['total_count'] : $assignedExam['question_count'];
             $assignedExam['marked_count'] = $dashboardSubmission ? (int) $dashboardSubmission['marked_count'] : 0;
-            $assignedExam['can_edit'] = $assignedExam['has_submission'] && $assignedExam['display_status'] === 'Open' && $assignedExam['question_count'] > 0;
-            $assignedExam['can_start'] = ! $assignedExam['has_submission'] && $assignedExam['display_status'] === 'Open' && $assignedExam['question_count'] > 0;
+            $dashboardTimeLeft = $dashboardAttempt
+                ? $this->secondsRemaining($assignedExam, $dashboardAttempt, true)
+                : 0;
+            $assignedExam['can_edit'] = $assignedExam['has_submission']
+                && $assignedExam['display_status'] === 'Open'
+                && $assignedExam['question_count'] > 0
+                && $dashboardTimeLeft > 0;
+            $assignedExam['can_start'] = ! $assignedExam['has_submission']
+                && $assignedExam['display_status'] === 'Open'
+                && $assignedExam['question_count'] > 0
+                && (! $dashboardAttempt || $dashboardTimeLeft > 0);
             $examTokens = session()->get('exam_tokens') ?: [];
             $examToken = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
             $examTokens[$examToken] = (int) $assignedExam['id'];
@@ -286,8 +295,11 @@ class Exam extends BaseController
             $savedAnswers = $attempt['answers'] ? (json_decode($attempt['answers'], true) ?: []) : $submissionAnswers;
             $savedMarked = $attempt['marked'] ? (json_decode($attempt['marked'], true) ?: []) : [];
             $secondsRemaining = $this->secondsRemaining($exam, $attempt, (bool) $submission);
-            if (! $submission && $secondsRemaining < 1) {
+            if ($secondsRemaining < 1) {
                 $screen = 'expired';
+                if ($submission) {
+                    $screen = 'success';
+                }
             }
         } elseif ($screen === 'success') {
             $examId = (int) (session()->get('submitted_exam_id') ?: ($assignedExam['id'] ?? 0));
@@ -332,6 +344,12 @@ class Exam extends BaseController
             'timeUsed' => (int) $submission['time_used'],
         ] : null;
 
+        $canEditSubmission = $submission
+            && $exam
+            && $attempt
+            && $this->isOpen($exam, $now)
+            && $this->secondsRemaining($exam, $attempt, true) > 0;
+
         return view('exam/index', [
             'applicant' => $this->applicantViewData($applicant, $assignedExam),
             'dashboardExam' => $dashboardExam,
@@ -340,7 +358,7 @@ class Exam extends BaseController
             'secondsRemaining' => $secondsRemaining,
             'savedAnswers' => $savedAnswers,
             'savedMarked' => $savedMarked,
-            'canEditSubmission' => $submission && $exam && $this->isOpen($exam, $now),
+            'canEditSubmission' => $canEditSubmission,
             'initialScreen' => $screen,
             'submissionSummary' => $submissionSummary,
             'availableExams' => $availableExams,
@@ -368,8 +386,8 @@ class Exam extends BaseController
 
         $submission = $this->submissionFor($examId, (string) $applicant['applicant_code']);
         $attempt = $this->ensureAttempt($exam, (string) $applicant['applicant_code']);
-        if (! $submission && $this->secondsRemaining($exam, $attempt, false) < 1) {
-            return $this->response->setStatusCode(423)->setJSON(['error' => 'Your assessment time has expired.']);
+        if ($this->secondsRemaining($exam, $attempt, (bool) $submission) < 1) {
+            return $this->response->setStatusCode(423)->setJSON(['error' => 'Exam time has ended. Your answers can no longer be edited.']);
         }
 
         $answers = $this->cleanAnswers($examId, is_array($payload['answers'] ?? null) ? $payload['answers'] : []);
@@ -399,8 +417,8 @@ class Exam extends BaseController
         $applicantCode = (string) session()->get('applicant_id');
         $submission = $this->submissionFor($examId, $applicantCode);
         $attempt = $this->ensureAttempt($exam, $applicantCode);
-        if (! $submission && $this->secondsRemaining($exam, $attempt, false) < 1) {
-            return $this->response->setStatusCode(423)->setJSON(['error' => 'Your assessment time has expired.']);
+        if ($this->secondsRemaining($exam, $attempt, (bool) $submission) < 1) {
+            return $this->response->setStatusCode(423)->setJSON(['error' => 'Exam time has ended. File uploads are closed.']);
         }
         $file = $this->request->getFile('file');
         if ($file === null || ! $file->isValid()) {
@@ -474,24 +492,38 @@ class Exam extends BaseController
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Assessment access denied.']);
         }
         $autoSubmit = ! empty($payload['autoSubmit']);
-        $scheduleAllowsAutoSubmit = $exam['status'] === 'active'
-            && (! $exam['start_at'] || time() >= strtotime($exam['start_at']))
-            && (! $exam['end_at'] || time() <= strtotime($exam['end_at']) + 30);
-        if (! $this->isOpen($exam) && ! ($autoSubmit && $scheduleAllowsAutoSubmit)) {
-            return $this->response->setStatusCode(423)->setJSON(['error' => 'This assessment is closed for submissions.']);
-        }
         $totalCount = $this->questionCount($examId);
         if ($totalCount < 1) {
             return $this->response->setStatusCode(422)->setJSON(['error' => 'This assessment has no questions.']);
         }
 
         $existing = $this->submissionFor($examId, (string) $applicant['applicant_code']);
-        $attempt = $this->ensureAttempt($exam, (string) $applicant['applicant_code']);
-        $personalTimeExpired = ! $existing && time() > $this->attemptDeadline($exam, $attempt);
-        $answerSource = $personalTimeExpired
+        $attempt = $this->attemptFor($examId, (string) $applicant['applicant_code']);
+        if (! $attempt) {
+            if (! $this->isOpen($exam)) {
+                return $this->response->setStatusCode(423)->setJSON(['error' => 'This assessment is not currently open.']);
+            }
+            $attempt = $this->ensureAttempt($exam, (string) $applicant['applicant_code']);
+        }
+
+        $now = time();
+        $deadline = $this->attemptDeadline($exam, $attempt);
+        $timeExpired = $now >= $deadline;
+        $autoSubmitAllowed = $autoSubmit
+            && $exam['status'] === 'active'
+            && $now >= strtotime($attempt['started_at'])
+            && $now <= $deadline + self::AUTO_SUBMIT_GRACE_SECONDS;
+        if (! $this->isOpen($exam) && ! $autoSubmitAllowed) {
+            return $this->response->setStatusCode(423)->setJSON(['error' => 'This assessment is closed for submissions.']);
+        }
+        if ($timeExpired && ! $autoSubmitAllowed) {
+            return $this->response->setStatusCode(423)->setJSON(['error' => 'Exam time has ended. Your answers can no longer be submitted.']);
+        }
+
+        $answerSource = $timeExpired
             ? (json_decode((string) $attempt['answers'], true) ?: [])
             : (is_array($payload['answers'] ?? null) ? $payload['answers'] : []);
-        $markedSource = $personalTimeExpired
+        $markedSource = $timeExpired
             ? (json_decode((string) $attempt['marked'], true) ?: [])
             : (is_array($payload['marked'] ?? null) ? $payload['marked'] : []);
         $answers = $this->cleanAnswers($examId, $answerSource);

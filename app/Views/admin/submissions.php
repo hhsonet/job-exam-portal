@@ -21,7 +21,8 @@
       <div style="font-size:20px;color:#778092">☼</div>
     </header>
     <div class="admin-content">
-      <div class="admin-heading"><div><h1>Submissions by applicant</h1><p>Review each applicant's answers, score, and reviewer notes.</p></div><div style="display:flex;gap:8px;align-items:center"><form method="post" action="<?= site_url('admin/submissions/delete-all') ?>" onsubmit="return confirm('Remove all submissions and saved attempts? This cannot be undone.');"><button class="admin-btn" type="submit" style="background:#fff0f0;color:#b8324b;border:1px solid #f0cbd2">Remove all submissions</button></form><a class="admin-btn" href="<?= site_url('admin/exams') ?>">Exam management</a></div></div>
+      <?php $exportQuery = array_filter(['exam_id' => $examFilter ?? 0, 'applicant_filter' => $applicantFilter ?? ''], static fn ($value) => $value !== '' && $value !== null && $value !== 0); ?>
+      <div class="admin-heading"><div><h1>Submissions by applicant</h1><p>Review each applicant's answers, score, and reviewer notes.</p></div><div style="display:flex;gap:8px;align-items:center"><a class="admin-btn" href="<?= site_url('admin/submissions/export') . ($exportQuery ? '?' . http_build_query($exportQuery) : '') ?>">Export marks</a><form method="post" action="<?= site_url('admin/submissions/delete-all') ?>" onsubmit="return confirm('Remove all submissions and saved attempts? This cannot be undone.');"><button class="admin-btn" type="submit" style="background:#fff0f0;color:#b8324b;border:1px solid #f0cbd2">Remove all submissions</button></form><a class="admin-btn" href="<?= site_url('admin/exams') ?>">Exam management</a></div></div>
       <?php if (!empty($success)): ?><div style="margin-bottom:18px;padding:12px 14px;border-radius:8px;background:#eaf8ef;color:#187345"><?= esc($success) ?></div><?php endif; ?>
       <form class="filter" method="get" action="<?= site_url('admin/submissions') ?>">
         <select name="exam_id"><option value="">All exams</option><?php foreach (($exams ?? []) as $exam): ?><option value="<?= (int) $exam['id'] ?>" <?= (int) ($examFilter ?? 0) === (int) $exam['id'] ? 'selected' : '' ?>><?= esc($exam['title']) ?></option><?php endforeach; ?></select>
@@ -34,7 +35,7 @@
       <?php else: ?>
         <div class="admin-table submission-table">
           <table>
-            <thead><tr><th>Submission</th><th>Exam</th><th>Applicant</th><th>Answered</th><th>Time used</th><th>Submitted</th><th>Mark</th><th>Details</th></tr></thead>
+            <thead><tr><th>Submission</th><th>Exam</th><th>Applicant</th><th>Answered</th><th>Time used</th><th>Submitted</th><th>Marks</th><th>Details</th></tr></thead>
             <tbody>
             <?php foreach ($submissions as $submission): ?>
               <tr>
@@ -44,7 +45,7 @@
                 <td><?= esc($submission['answered_count']) ?> / <?= esc($submission['total_count']) ?></td>
                 <td><?= sprintf('%02d:%02d', intdiv((int) $submission['time_used'], 60), (int) $submission['time_used'] % 60) ?></td>
                 <td><?= esc($submission['submitted_at']) ?></td>
-                <td><form method="post" action="<?= site_url('admin/submissions/' . $submission['id'] . '/mark') ?>"><input name="score" type="number" min="0" step="0.01" placeholder="Score" value="<?= esc($submission['score'] ?? '') ?>"><input name="max_score" type="number" min="0" step="0.01" placeholder="Max" value="<?= esc($submission['max_score'] ?? '') ?>"><textarea name="marker_notes" placeholder="Reviewer notes"><?= esc($submission['marker_notes'] ?? '') ?></textarea><button type="submit">Save mark</button></form></td>
+                <td><strong><?= $submission['score'] !== null && $submission['score'] !== '' ? esc($submission['score']) : 'Not marked' ?></strong></td>
                 <td><a class="detail-link" href="<?= site_url('admin/submissions/' . $submission['id']) ?>">View answers →</a></td>
               </tr>
             <?php endforeach; ?>

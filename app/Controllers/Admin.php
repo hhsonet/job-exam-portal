@@ -752,18 +752,72 @@ class Admin extends BaseController
         return view('admin/submissions', ['submissions' => $submissions, 'applicants' => $applicants, 'exams' => $exams, 'applicantFilter' => $applicantFilter, 'examFilter' => $examFilter, 'success' => $this->request->getGet('success')]);
     }
 
+    public function exportSubmissionMarks(): ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $db = db_connect();
+        $applicantFilter = trim((string) ($this->request->getGet('applicant') ?: $this->request->getGet('applicant_filter')));
+        $examFilter = (int) $this->request->getGet('exam_id');
+        $submissionQuery = $db->table('submissions s')
+            ->select('s.applicant_id, s.answered_count, s.time_used, s.score, u.full_name AS applicant_name')
+            ->join(
+                '(SELECT MAX(id) AS id FROM submissions GROUP BY exam_id, applicant_id) latest_submission',
+                'latest_submission.id = s.id',
+                'inner',
+                false
+            )
+            ->join('users u', "u.applicant_code = s.applicant_id AND u.usertype = 'applicant'", 'left')
+            ->orderBy('s.id', 'DESC');
+        if ($applicantFilter !== '') {
+            $submissionQuery->groupStart()
+                ->like('s.applicant_id', $applicantFilter)
+                ->orLike('u.full_name', $applicantFilter)
+                ->groupEnd();
+        }
+        if ($examFilter > 0) {
+            $submissionQuery->where('s.exam_id', $examFilter);
+        }
+
+        $handle = fopen('php://temp', 'r+');
+        fputcsv($handle, ['Applicant ID', 'Applicant Name', 'Answered', 'Time used', 'Marks']);
+        foreach ($submissionQuery->get()->getResultArray() as $submission) {
+            fputcsv($handle, [
+                $submission['applicant_id'],
+                $submission['applicant_name'] ?: 'Unknown applicant',
+                $submission['answered_count'],
+                sprintf('%02d:%02d', intdiv((int) $submission['time_used'], 60), (int) $submission['time_used'] % 60),
+                $submission['score'] !== null ? $submission['score'] : 'Not marked',
+            ]);
+        }
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+        $fileName = 'submission_marks_' . date('Y-m-d_H-i-s') . '.csv';
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $fileName . '"')
+            ->setBody("\xEF\xBB\xBF" . $csv);
+    }
+
     public function markSubmission(int $id): ResponseInterface
     {
         if ($redirect = $this->requireAdmin()) {
             return $redirect;
         }
 
-        $score = max(0, (float) $this->request->getPost('score'));
-        $maxScore = max(0, (float) $this->request->getPost('max_score'));
+        $db = db_connect();
+        $rawMarks = $this->request->getPost('marks') ?? [];
+        $rawMarks = is_array($rawMarks) ? $rawMarks : [];
         $notes = trim((string) $this->request->getPost('marker_notes'));
 
-        $db = db_connect();
         $submission = $db->table('submissions')->where('id', $id)->get()->getRowArray();
+        if (! $submission) {
+            return redirect()->to(site_url('admin/submissions'));
+        }
         if ($submission && $submission['exam_id'] !== null && $submission['applicant_id'] !== null) {
             $latestId = $db->table('submissions')
                 ->select('id')
@@ -775,15 +829,65 @@ class Admin extends BaseController
             }
         }
 
+        $submission = $db->table('submissions')->where('id', $id)->get()->getRowArray() ?: $submission;
+        $questions = $db->table('questions')
+            ->where(['exam_id' => $submission['exam_id'], 'is_active' => 1])
+            ->orderBy('id', 'ASC')->get()->getResultArray();
+        $marks = [];
+        $score = 0.0;
+        $maxScore = 0.0;
+        foreach ($questions as $question) {
+            $questionId = (string) $question['id'];
+            $rawValue = array_key_exists($questionId, $rawMarks) ? $rawMarks[$questionId] : 0;
+            $rawValue = trim((string) $rawValue);
+            $maxMarks = (float) $question['points'];
+            $maxScore += $maxMarks;
+            if ($rawValue === '') {
+                $value = 0.0;
+            } elseif (! is_numeric($rawValue)) {
+                session()->setFlashdata('mark_values', $rawMarks);
+                return redirect()->to(site_url('admin/submissions/' . $id . '?error=' . rawurlencode('Each obtained mark must be a valid number.')));
+            } else {
+                $value = round((float) $rawValue, 2);
+            }
+            if ($value < 0 || $value > $maxMarks) {
+                session()->setFlashdata('mark_values', $rawMarks);
+                return redirect()->to(site_url('admin/submissions/' . $id . '?error=' . rawurlencode('Obtained marks must be between 0 and the question maximum.')));
+            }
+            $marks[(int) $question['id']] = $value;
+            $score += $value;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $db->transStart();
+        $db->table('submission_question_marks')->where('submission_id', $id)->delete();
+        if ($marks) {
+            $markRows = [];
+            foreach ($marks as $questionId => $value) {
+                $markRows[] = [
+                    'submission_id' => $id,
+                    'question_id' => $questionId,
+                    'marks' => $value,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+            $db->table('submission_question_marks')->insertBatch($markRows);
+        }
         $db->table('submissions')->where('id', $id)->update([
             'score' => $score,
             'max_score' => $maxScore,
             'marker_notes' => $notes ?: null,
             'status' => 'marked',
-            'updated_at' => date('Y-m-d H:i:s'),
+            'updated_at' => $now,
         ]);
+        $db->transComplete();
 
-        return redirect()->to('/admin/submissions');
+        if (! $db->transStatus()) {
+            return redirect()->to(site_url('admin/submissions/' . $id . '?error=' . rawurlencode('Marks could not be saved. Please try again.')));
+        }
+
+        return redirect()->to(site_url('admin/submissions/' . $id . '?success=' . rawurlencode('Question marks saved. Overall score: ' . rtrim(rtrim(number_format($score, 2, '.', ''), '0'), '.') . ' / ' . rtrim(rtrim(number_format($maxScore, 2, '.', ''), '0'), '.') . '.')));
     }
 
     public function submissionDetail(int $id): string|ResponseInterface
@@ -794,8 +898,7 @@ class Admin extends BaseController
 
         $db = db_connect();
         $submission = $db->table('submissions s')
-            ->select('s.*, e.title AS exam_title, u.full_name AS applicant_name, u.position AS applicant_position')
-            ->join('users u', "u.applicant_code = s.applicant_id AND u.usertype = 'applicant'", 'left')
+            ->select('s.*, e.title AS exam_title')
             ->join('exams e', 'e.id = s.exam_id', 'left')
             ->where('s.id', $id)->get()->getRowArray();
         if (! $submission) {
@@ -821,6 +924,80 @@ class Admin extends BaseController
         }
         unset($question);
 
-        return view('admin/submission_detail', ['submission' => $submission, 'questions' => $questions]);
+        $savedMarks = [];
+        foreach ($db->table('submission_question_marks')->where('submission_id', $id)->get()->getResultArray() as $mark) {
+            $savedMarks[(int) $mark['question_id']] = (float) $mark['marks'];
+        }
+        $postedMarks = session()->getFlashdata('mark_values');
+        $postedMarks = is_array($postedMarks) ? $postedMarks : [];
+        foreach ($questions as &$question) {
+            $questionId = (int) $question['id'];
+            $question['obtain_mark'] = array_key_exists((string) $questionId, $postedMarks)
+                ? $postedMarks[(string) $questionId]
+                : ($savedMarks[$questionId] ?? '');
+        }
+        unset($question);
+
+        $maxScore = array_sum(array_map(static fn (array $question): float => (float) $question['points'], $questions));
+        $submissionIds = array_map(
+            static fn (array $row): int => (int) $row['id'],
+            $db->table('submissions s')
+                ->select('s.id')
+                ->join(
+                    '(SELECT MAX(id) AS id FROM submissions GROUP BY exam_id, applicant_id) latest_submission',
+                    'latest_submission.id = s.id',
+                    'inner',
+                    false
+                )
+                ->orderBy('s.id', 'DESC')
+                ->get()->getResultArray()
+        );
+        $currentIndex = array_search($id, $submissionIds, true);
+        $previousSubmissionId = $currentIndex !== false ? ($submissionIds[$currentIndex + 1] ?? null) : null;
+        $nextSubmissionId = $currentIndex !== false && $currentIndex > 0 ? $submissionIds[$currentIndex - 1] : null;
+
+        return view('admin/submission_detail', [
+            'submission' => $submission,
+            'questions' => $questions,
+            'markError' => $this->request->getGet('error'),
+            'markSuccess' => $this->request->getGet('success'),
+            'savedMarksTotal' => array_sum($savedMarks),
+            'maxScore' => $maxScore,
+            'previousSubmissionId' => $previousSubmissionId,
+            'nextSubmissionId' => $nextSubmissionId,
+        ]);
+    }
+
+    public function submissionFile(int $submissionId, int $questionId): ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $db = db_connect();
+        $submission = $db->table('submissions')->where('id', $submissionId)->get()->getRowArray();
+        $question = $submission
+            ? $db->table('questions')->where(['id' => $questionId, 'exam_id' => $submission['exam_id']])->get()->getRowArray()
+            : null;
+        $answers = $submission && $submission['answers'] ? (json_decode($submission['answers'], true) ?: []) : [];
+        $answer = $answers['q' . $questionId] ?? null;
+        $relativePath = is_array($answer) ? (string) ($answer['file'] ?? '') : '';
+        $uploadRoot = realpath(WRITEPATH . 'uploads/exam');
+        $filePath = $uploadRoot && $relativePath !== ''
+            ? realpath($uploadRoot . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath))
+            : false;
+        if (! $submission || ! $question || ! $uploadRoot || ! $filePath
+            || ! str_starts_with($filePath, $uploadRoot . DIRECTORY_SEPARATOR)
+            || ! is_file($filePath)) {
+            return $this->response->setStatusCode(404)->setBody('Submission file not found.');
+        }
+
+        $downloadName = basename((string) ($answer['name'] ?? basename($relativePath)));
+        $extension = pathinfo($relativePath, PATHINFO_EXTENSION);
+        if ($extension !== '' && pathinfo($downloadName, PATHINFO_EXTENSION) === '') {
+            $downloadName = rtrim($downloadName, '. ') . '.' . $extension;
+        }
+
+        return $this->response->download($filePath, null)->setFileName($downloadName);
     }
 }

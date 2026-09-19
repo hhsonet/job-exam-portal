@@ -234,8 +234,8 @@
   <div id="screenExpired" class="hidden" style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px 28px; background: #FFFFFF;">
     <div style="max-width: 560px; text-align: center;">
       <div class="mono" style="width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--red-deep); margin: 0 auto 26px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: var(--red-deep);">0:00</div>
-      <h1 style="margin: 0 0 14px; font-size: 32px; font-weight: 700; letter-spacing: -0.02em;">Time is up</h1>
-      <p style="margin: 0 0 30px; font-size: 17px; line-height: 1.6; color: var(--ink-muted);">Your exam is being submitted automatically. All saved answers are included. Please do not close this window.</p>
+      <h1 style="margin: 0 0 14px; font-size: 32px; font-weight: 700; letter-spacing: -0.02em;">Exam time has ended</h1>
+      <p style="margin: 0 0 30px; font-size: 17px; line-height: 1.6; color: var(--ink-muted);">Your exam is being submitted automatically. All saved answers are included, and further editing is disabled. Please do not close this window.</p>
       <div style="height: 6px; border-radius: 999px; background: #EDF1F6; overflow: hidden; margin-bottom: 14px;">
         <div id="autoSubmitBar" style="width: 0%; height: 100%; background: var(--red-deep); transition: width 1.2s ease;"></div>
       </div>
@@ -309,17 +309,6 @@
     </div>
   </div>
 
-  <!-- EXIT WARNING MODAL -->
-  <div id="exitModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" style="z-index: 70;">
-    <div class="modal-card" style="max-width: 460px;">
-      <h2 style="margin: 0 0 10px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Welcome back</h2>
-      <p style="margin: 0 0 22px; font-size: 16px; line-height: 1.6; color: var(--ink-muted);">Your answers are saved, but the timer kept running while you were away and the exam will submit itself when it reaches zero.</p>
-      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <button id="dismissExitBtn" style="flex: 1 1 140px; padding: 13px 18px; font-size: 16px; font-weight: 600; color: #FFFFFF; background: var(--blue); border: none; border-radius: 10px; cursor: pointer;">Continue exam</button>
-      </div>
-    </div>
-  </div>
-
 </div>
 
 <script>
@@ -338,18 +327,20 @@ const SUBMITTED_URL = <?= json_encode(site_url('exam/submitted')) ?>;
 const DRAFT_KEY = "exam-draft-" + APPLICANT.id + "-" + EXAM_ID;
 let LOCAL_DRAFT = {};
 try { LOCAL_DRAFT = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}"); } catch (e) { LOCAL_DRAFT = {}; }
+const RESTORED_INDEX = Math.min(
+  Math.max(Number(LOCAL_DRAFT.index) || 0, 0),
+  Math.max(QUESTIONS.length - 1, 0)
+);
 
 const state = {
   screen: <?= json_encode($initialScreen ?? 'instructions') ?>,
-  index: 0,
+  index: RESTORED_INDEX,
   answers: Object.assign({}, SAVED_ANSWERS || {}, LOCAL_DRAFT.answers || {}),
   secondsLeft: INITIAL_SECONDS,
   offline: !navigator.onLine,
   saveState: "saved",
   showSubmitModal: false,
-  showExitWarning: false,
   fullscreen: false,
-  wasHidden: false,
   autoSubmitStep: 0,
   submittedAt: <?= json_encode($submissionSummary['submittedAt'] ?? null) ?>,
   finalReference: <?= json_encode($submissionSummary['reference'] ?? null) ?>,
@@ -377,7 +368,7 @@ function isAnswered(q) {
 
 function cacheDraft() {
   if (!EXAM_ID) return;
-  localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers: state.answers, updatedAt: Date.now() }));
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ index: state.index, answers: state.answers, updatedAt: Date.now() }));
 }
 
 async function saveDraft() {
@@ -399,7 +390,7 @@ async function saveDraft() {
     if (!res.ok) throw new Error(data.error || "Autosave failed.");
     state.offline = false;
     state.saveState = "saved";
-    localStorage.removeItem(DRAFT_KEY);
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ index: state.index, updatedAt: Date.now() }));
   } catch (err) {
     state.saveState = "queued";
   }
@@ -430,6 +421,7 @@ function select(q, key) {
 
 function go(i) {
   state.index = Math.min(QUESTIONS.length - 1, Math.max(0, i));
+  cacheDraft();
   render();
 }
 
@@ -477,12 +469,13 @@ function beginAutoSubmit() {
 async function finish() {
   state.showSubmitModal = false;
   state.isSubmitting = true;
+  const timeEnded = state.screen === "expired" || state.secondsLeft === 0;
   const answeredCount = QUESTIONS.filter(isAnswered).length;
   const timeUsedSeconds = state.timeUsed || (TOTAL_SECONDS - state.secondsLeft);
 
   const payload = {
     examId: EXAM_ID,
-    autoSubmit: state.screen === "expired" || state.secondsLeft === 0,
+    autoSubmit: timeEnded,
     answers: Object.fromEntries(Object.entries(state.answers).map(([k, v]) => {
       if (v && typeof v === "object" && v.storedName) return [k, { file: v.storedName, name: v.name }];
       return [k, v];
@@ -500,6 +493,14 @@ async function finish() {
     });
     const data = await res.json();
     if (!res.ok) {
+      if (timeEnded) {
+        state.isSubmitting = false;
+        state.screen = "expired";
+        state.autoSubmitStep = 2;
+        render();
+        setTimeout(() => finish(), 3000);
+        return;
+      }
       state.isSubmitting = false;
       state.screen = "exam";
       render();
@@ -511,6 +512,13 @@ async function finish() {
     return;
   } catch (err) {
     state.isSubmitting = false;
+    if (timeEnded) {
+      state.screen = "expired";
+      state.autoSubmitStep = 2;
+      render();
+      setTimeout(() => finish(), 3000);
+      return;
+    }
     state.screen = "exam";
     cacheDraft();
     render();
@@ -682,11 +690,14 @@ function render() {
   el("unansweredWarning").classList.toggle("hidden", unansweredCount === 0);
   el("unansweredHeadline").textContent = unansweredCount === 1 ? "1 question has no answer" : unansweredCount + " questions have no answer";
 
-  el("exitModal").classList.toggle("hidden", !state.showExitWarning);
 }
 
 function renderExpired() {
   el("autoSubmitBar").style.width = state.autoSubmitStep === 0 ? "45%" : "100%";
+  if (state.autoSubmitStep === 2) {
+    el("autoSubmitStatus").textContent = "Connection issue - retrying automatically";
+    return;
+  }
   el("autoSubmitStatus").textContent = state.autoSubmitStep === 0 ? "Uploading answers…" : "Answers received — finalising";
 }
 
@@ -752,11 +763,10 @@ el("openSubmitBtn").addEventListener("click", () => { state.showSubmitModal = tr
 el("keepWorkingBtn").addEventListener("click", () => { state.showSubmitModal = false; render(); });
 el("confirmSubmitBtn").addEventListener("click", () => finish());
 
-el("dismissExitBtn").addEventListener("click", () => { state.showExitWarning = false; render(); });
 el("restartBtn").addEventListener("click", () => { window.location.href = <?= json_encode(site_url('exam/dashboard')) ?>; });
 
 document.addEventListener("keydown", (e) => {
-  if (state.screen !== "exam" || state.showSubmitModal || state.showExitWarning) return;
+  if (state.screen !== "exam" || state.showSubmitModal) return;
   const tag = (e.target && e.target.tagName) || "";
   if (tag === "TEXTAREA" || tag === "INPUT") return;
   if (e.key === "ArrowLeft") go(state.index - 1);
@@ -775,16 +785,6 @@ window.addEventListener("beforeunload", (e) => {
 
 window.addEventListener("offline", () => { state.offline = true; state.saveState = "queued"; cacheDraft(); render(); });
 window.addEventListener("online", () => { state.offline = false; saveDraft(); });
-
-document.addEventListener("visibilitychange", () => {
-  if (state.screen !== "exam") return;
-  if (document.hidden) {
-    state.wasHidden = true;
-  } else if (state.wasHidden) {
-    state.wasHidden = false;
-    if (!state.showSubmitModal) { state.showExitWarning = true; render(); }
-  }
-});
 
 setInterval(() => {
   if (state.screen !== "exam") return;
