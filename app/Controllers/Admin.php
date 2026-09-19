@@ -170,83 +170,304 @@ class Admin extends BaseController
         }
         unset($exam);
 
-        $completionRows = db_connect()->query(
-            "SELECT u.full_name, u.applicant_code, u.assigned_exam_id,
+        return view('admin/exams', ['exams' => $exams, 'error' => $this->request->getGet('error'), 'success' => $this->request->getGet('success')]);
+    }
+
+    public function examMonitor(int $id): string|ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $monitorData = $this->buildExamMonitorData($id);
+        if (! $monitorData) {
+            return redirect()->to('/admin/exams?error=' . rawurlencode('Exam not found.'));
+        }
+
+        return view('admin/exam_monitor', ['monitorData' => $monitorData]);
+    }
+
+    public function examMonitorData(int $id): ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $monitorData = $this->buildExamMonitorData($id);
+        if (! $monitorData) {
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'Exam not found.']);
+        }
+
+        return $this->response->setJSON($monitorData);
+    }
+
+    private function buildExamMonitorData(int $examId): ?array
+    {
+        $db = db_connect();
+        $exam = $db->table('exams')->where('id', $examId)->get()->getRowArray();
+        if (! $exam) {
+            return null;
+        }
+
+        $nowString = date('Y-m-d H:i:s');
+        if ($exam['status'] !== 'active') {
+            $displayStatus = ucfirst((string) $exam['status']);
+        } elseif ($exam['start_at'] && $nowString < $exam['start_at']) {
+            $displayStatus = 'Scheduled';
+        } elseif ($exam['end_at'] && $nowString > $exam['end_at']) {
+            $displayStatus = 'Closed';
+        } else {
+            $displayStatus = 'Open';
+        }
+
+        $questionRows = $db->table('questions')
+            ->select('id, type')
+            ->where(['exam_id' => $examId, 'is_active' => 1])
+            ->orderBy('id', 'ASC')
+            ->get()->getResultArray();
+        $questionCount = count($questionRows);
+
+        $applicantRows = $db->query(
+            "SELECT u.id AS user_id, u.full_name, u.applicant_code, u.email,
                     s.id AS submission_id, s.status AS submission_status,
                     s.answered_count, s.total_count, s.submitted_at, s.time_used,
                     s.answers AS submission_answers,
                     a.id AS attempt_id, a.started_at AS attempt_started_at,
-                    a.answers AS attempt_answers
+                    a.updated_at AS attempt_updated_at, a.answers AS attempt_answers
              FROM users u
              LEFT JOIN exam_attempts a
-                    ON a.exam_id = u.assigned_exam_id
-                   AND a.applicant_id = u.applicant_code
+                    ON a.exam_id = ? AND a.applicant_id = u.applicant_code
              LEFT JOIN (
                  SELECT s1.*
                  FROM submissions s1
                  INNER JOIN (
                      SELECT MAX(id) AS id
                      FROM submissions
+                     WHERE exam_id = ?
                      GROUP BY exam_id, applicant_id
                  ) latest ON latest.id = s1.id
-             ) s ON s.exam_id = u.assigned_exam_id AND s.applicant_id = u.applicant_code
-             WHERE u.usertype = 'applicant'
-               AND u.assigned_exam_id IS NOT NULL
-             ORDER BY u.assigned_exam_id ASC, u.full_name ASC"
+             ) s ON s.exam_id = ? AND s.applicant_id = u.applicant_code
+             WHERE u.usertype = 'applicant' AND u.assigned_exam_id = ?
+             ORDER BY u.full_name ASC",
+            [$examId, $examId, $examId, $examId]
         )->getResultArray();
 
-        $answeredFromJson = static function (?string $json): int {
-            $answers = $json ? json_decode($json, true) : [];
-            if (! is_array($answers)) {
-                return 0;
+        $applicantCodes = array_values(array_filter(array_map(static fn (array $row): string => (string) $row['applicant_code'], $applicantRows)));
+        $activityRows = $db->table('audit_logs')
+            ->where(['entity_type' => 'exam_activity', 'entity_id' => (string) $examId])
+            ->orderBy('id', 'DESC')->limit(300)->get()->getResultArray();
+        $activityByApplicant = [];
+        $globalEvents = [];
+        foreach ($activityRows as $activity) {
+            $metadata = $activity['metadata'] ? json_decode($activity['metadata'], true) : [];
+            $applicantCode = is_array($metadata) ? (string) ($metadata['applicant_id'] ?? '') : '';
+            if ($applicantCode === '' || ! in_array($applicantCode, $applicantCodes, true)) {
+                continue;
             }
-
-            return count(array_filter($answers, static function (mixed $value): bool {
-                if (is_array($value)) {
-                    return isset($value['file']) || count($value) > 0;
-                }
-
-                return trim((string) $value) !== '';
-            }));
-        };
-
-        $applicantsByExam = [];
-        foreach ($completionRows as $row) {
-            $examId = (int) $row['assigned_exam_id'];
-            $examQuestionCount = 0;
-            foreach ($exams as $exam) {
-                if ((int) $exam['id'] === $examId) {
-                    $examQuestionCount = (int) $exam['question_count'];
-                    break;
-                }
-            }
-
-            $hasSubmission = ! empty($row['submission_id']);
-            $answeredCount = $hasSubmission
-                ? (int) $row['answered_count']
-                : $answeredFromJson($row['attempt_answers'] ?? null);
-            $totalCount = $examQuestionCount > 0 ? $examQuestionCount : (int) ($row['total_count'] ?? 0);
-            $progress = $totalCount > 0 ? min(100, (int) round(($answeredCount / $totalCount) * 100)) : 0;
-
-            $applicantsByExam[$examId][] = [
-                'name' => $row['full_name'],
-                'applicant_id' => $row['applicant_code'],
-                'answered_count' => $answeredCount,
-                'total_count' => $totalCount,
-                'progress' => $progress,
-                'status' => $hasSubmission ? 'Submitted' : (! empty($row['attempt_id']) ? 'In progress' : 'Not started'),
-                'started_at' => $row['attempt_started_at'],
-                'submitted_at' => $row['submitted_at'],
-                'time_used' => (int) ($row['time_used'] ?? 0),
+            $event = preg_replace('/^APPLICANT_/', '', (string) $activity['event']) ?: (string) $activity['event'];
+            $eventLabel = ucwords(strtolower(str_replace('_', ' ', $event)));
+            $entry = [
+                'event' => $event,
+                'label' => $eventLabel,
+                'created_at' => $activity['created_at'],
+                'description' => $activity['description'],
+            ];
+            $activityByApplicant[$applicantCode][] = $entry;
+            $globalEvents[] = [
+                'applicant_id' => $applicantCode,
+                'event' => $event,
+                'label' => $eventLabel,
+                'created_at' => $activity['created_at'],
             ];
         }
 
-        foreach ($exams as &$exam) {
-            $exam['applicants'] = $applicantsByExam[(int) $exam['id']] ?? [];
+        $submissionRows = $db->table('submission_logs sl')
+            ->select('sl.applicant_id, sl.action, sl.created_at, u.full_name')
+            ->join('users u', 'u.applicant_code = sl.applicant_id', 'left')
+            ->where('sl.exam_id', $examId)
+            ->orderBy('sl.id', 'DESC')->limit(100)->get()->getResultArray();
+        foreach ($submissionRows as $submission) {
+            $actionLabel = $submission['action'] === 'RESUBMIT' ? 'Exam resubmitted' : 'Exam submitted';
+            $globalEvents[] = [
+                'applicant_id' => $submission['applicant_id'],
+                'applicant_name' => $submission['full_name'] ?: 'Applicant',
+                'event' => $submission['action'],
+                'label' => $actionLabel,
+                'created_at' => $submission['created_at'],
+            ];
+            $activityByApplicant[$submission['applicant_id']][] = [
+                'event' => $submission['action'],
+                'label' => $actionLabel,
+                'created_at' => $submission['created_at'],
+                'description' => 'Submission activity',
+            ];
         }
-        unset($exam);
+        foreach ($activityByApplicant as &$events) {
+            usort($events, static fn (array $left, array $right): int => strcmp((string) $right['created_at'], (string) $left['created_at']));
+        }
+        unset($events);
 
-        return view('admin/exams', ['exams' => $exams, 'error' => $this->request->getGet('error'), 'success' => $this->request->getGet('success')]);
+        $loginRows = $db->table('login_logs l')
+            ->select('l.user_id, l.ip_address, l.browser, l.browser_version, l.operating_system, l.device_type, l.logged_in_at')
+            ->join('users u', 'u.id = l.user_id', 'inner')
+            ->where(['u.assigned_exam_id' => $examId, 'u.usertype' => 'applicant', 'l.status' => 'SUCCESS'])
+            ->orderBy('l.id', 'DESC')->get()->getResultArray();
+        $loginByUser = [];
+        foreach ($loginRows as $login) {
+            $loginByUser[(int) $login['user_id']] ??= $login;
+        }
+
+        $taskLabels = [
+            'upload' => 'File upload',
+            'written' => 'Written response',
+            'single' => 'Objective questions',
+            'multi' => 'Objective questions',
+            'bool' => 'Objective questions',
+        ];
+        $taskDefinitions = [];
+        foreach ($questionRows as $question) {
+            $taskKey = $taskLabels[$question['type']] ?? 'Questions';
+            $taskDefinitions[$taskKey] ??= ['label' => $taskKey, 'question_ids' => []];
+            $taskDefinitions[$taskKey]['question_ids'][] = (int) $question['id'];
+        }
+        $taskDefinitions = array_values($taskDefinitions);
+
+        $countAnswered = static function (mixed $value): bool {
+            if (is_array($value)) {
+                return isset($value['file']) || count($value) > 0;
+            }
+
+            return trim((string) $value) !== '';
+        };
+        $serverNow = time();
+        $applicants = [];
+        $summary = ['total' => count($applicantRows), 'active' => 0, 'submitted' => 0, 'not_started' => 0, 'offline' => 0, 'attention' => 0];
+
+        foreach ($applicantRows as $row) {
+            $hasSubmission = ! empty($row['submission_id']);
+            $answers = json_decode((string) ($hasSubmission ? $row['submission_answers'] : $row['attempt_answers']), true);
+            $answers = is_array($answers) ? $answers : [];
+            $answeredCount = $hasSubmission ? (int) $row['answered_count'] : count(array_filter($answers, $countAnswered));
+            $progress = $questionCount > 0 ? min(100, (int) round(($answeredCount / $questionCount) * 100)) : 0;
+            $remaining = null;
+            $deadline = null;
+            if (! empty($row['attempt_started_at'])) {
+                $deadline = strtotime($row['attempt_started_at']) + (int) $exam['duration_seconds'];
+                if ($exam['end_at']) {
+                    $deadline = min($deadline, strtotime($exam['end_at']));
+                }
+                $remaining = max(0, $deadline - $serverNow);
+            }
+
+            $attemptFresh = ! empty($row['attempt_updated_at']) && (strtotime($row['attempt_updated_at']) >= ($serverNow - 45));
+            if ($hasSubmission) {
+                $status = 'submitted';
+            } elseif (empty($row['attempt_id'])) {
+                $status = 'not_started';
+            } elseif ($remaining !== null && $remaining < 1) {
+                $status = 'expired';
+            } elseif ($attemptFresh) {
+                $status = 'active';
+            } else {
+                $status = 'offline';
+            }
+
+            $latestEvent = $activityByApplicant[$row['applicant_code']][0] ?? null;
+            $attentionReasons = [];
+            if ($status === 'offline') {
+                $attentionReasons[] = 'Connection may be lost';
+            }
+            if ($status === 'expired') {
+                $attentionReasons[] = 'Exam time ended';
+            }
+            if ($remaining !== null && $remaining > 0 && $remaining <= 300 && ! $hasSubmission) {
+                $attentionReasons[] = 'Low time remaining';
+            }
+            if ($latestEvent && in_array($latestEvent['event'], ['TAB_HIDDEN', 'FOCUS_LOST', 'CONNECTION_LOST'], true)) {
+                $attentionReasons[] = $latestEvent['label'];
+            }
+            $attention = count($attentionReasons) > 0;
+
+            $tasks = [];
+            foreach ($taskDefinitions as $definition) {
+                $taskAnswered = 0;
+                foreach ($definition['question_ids'] as $questionId) {
+                    if ($countAnswered($answers['q' . $questionId] ?? null)) {
+                        $taskAnswered++;
+                    }
+                }
+                $taskTotal = count($definition['question_ids']);
+                $tasks[] = [
+                    'label' => $definition['label'],
+                    'answered' => $taskAnswered,
+                    'total' => $taskTotal,
+                    'status' => $taskAnswered >= $taskTotal ? 'Completed' : ($taskAnswered > 0 ? 'Working' : 'Not started'),
+                ];
+            }
+            $currentTask = 'Questions';
+            foreach ($tasks as $task) {
+                if ($task['status'] === 'Working') {
+                    $currentTask = $task['label'];
+                    break;
+                }
+                if ($task['status'] === 'Not started') {
+                    $currentTask = $task['label'];
+                }
+            }
+
+            $login = $loginByUser[(int) $row['user_id']] ?? [];
+            $applicantEvents = array_slice($activityByApplicant[$row['applicant_code']] ?? [], 0, 12);
+            $lastActivity = $row['attempt_updated_at'] ?: ($row['submitted_at'] ?: null);
+            $summary[$status === 'expired' ? 'offline' : $status] = ($summary[$status === 'expired' ? 'offline' : $status] ?? 0) + 1;
+            if ($attention) {
+                $summary['attention']++;
+            }
+
+            $applicants[] = [
+                'user_id' => (int) $row['user_id'],
+                'name' => $row['full_name'] ?: 'Applicant',
+                'applicant_id' => $row['applicant_code'],
+                'status' => $status,
+                'progress' => $progress,
+                'answered_count' => $answeredCount,
+                'total_count' => $questionCount,
+                'time_remaining' => $hasSubmission ? null : $remaining,
+                'started_at' => $row['attempt_started_at'],
+                'last_activity' => $lastActivity,
+                'submitted_at' => $row['submitted_at'],
+                'time_used' => (int) ($row['time_used'] ?? 0),
+                'tasks' => $tasks,
+                'current_task' => $currentTask,
+                'attention' => $attention,
+                'attention_reasons' => $attentionReasons,
+                'events' => $applicantEvents,
+                'session' => [
+                    'ip' => $login['ip_address'] ?? null,
+                    'browser' => trim(($login['browser'] ?? '') . ' ' . ($login['browser_version'] ?? '')) ?: null,
+                    'os' => $login['operating_system'] ?? null,
+                    'device' => $login['device_type'] ?? null,
+                ],
+            ];
+        }
+
+        usort($globalEvents, static fn (array $left, array $right): int => strcmp((string) $right['created_at'], (string) $left['created_at']));
+
+        return [
+            'server_now' => date('c'),
+            'exam' => [
+                'id' => $examId,
+                'title' => $exam['title'],
+                'description' => $exam['description'],
+                'status' => $displayStatus,
+                'start_at' => $exam['start_at'],
+                'end_at' => $exam['end_at'],
+                'duration_seconds' => (int) $exam['duration_seconds'],
+                'question_count' => $questionCount,
+            ],
+            'summary' => $summary,
+            'applicants' => $applicants,
+            'events' => array_slice($globalEvents, 0, 20),
+        ];
     }
 
     public function deleteExam(int $id): ResponseInterface

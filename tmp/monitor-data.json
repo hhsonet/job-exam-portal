@@ -1,0 +1,208 @@
+{
+    "server_now": "2026-09-20T01:58:00+06:00",
+    "exam": {
+        "id": 2,
+        "title": "Assistant Executive",
+        "description": null,
+        "status": "Open",
+        "start_at": "2026-09-19 18:01:00",
+        "end_at": "2026-09-20 22:40:00",
+        "duration_seconds": 1800,
+        "question_count": 7
+    },
+    "summary": {
+        "total": 2,
+        "active": 0,
+        "submitted": 0,
+        "not_started": 1,
+        "offline": 1,
+        "attention": 1
+    },
+    "applicants": [
+        {
+            "user_id": 2,
+            "name": "Hasan Sonet",
+            "applicant_id": "AE-000",
+            "status": "offline",
+            "progress": 0,
+            "answered_count": 0,
+            "total_count": 7,
+            "time_remaining": 714,
+            "started_at": "2026-09-20 01:39:54",
+            "last_activity": "2026-09-20 01:39:54",
+            "submitted_at": null,
+            "time_used": 0,
+            "tasks": [
+                {
+                    "label": "File upload",
+                    "answered": 0,
+                    "total": 2,
+                    "status": "Not started"
+                },
+                {
+                    "label": "Written response",
+                    "answered": 0,
+                    "total": 5,
+                    "status": "Not started"
+                }
+            ],
+            "current_task": "File upload",
+            "attention": true,
+            "attention_reasons": [
+                "Connection may be lost"
+            ],
+            "events": [
+                {
+                    "event": "RESUBMIT",
+                    "label": "Exam resubmitted",
+                    "created_at": "2026-09-20 01:19:56",
+                    "description": "Submission activity"
+                },
+                {
+                    "event": "RESUBMIT",
+                    "label": "Exam resubmitted",
+                    "created_at": "2026-09-20 01:17:20",
+                    "description": "Submission activity"
+                },
+                {
+                    "event": "RESUBMIT",
+                    "label": "Exam resubmitted",
+                    "created_at": "2026-09-20 01:13:26",
+                    "description": "Submission activity"
+                },
+                {
+                    "event": "RESUBMIT",
+                    "label": "Exam resubmitted",
+                    "created_at": "2026-09-20 01:01:22",
+                    "description": "Submission activity"
+                },
+                {
+                    "event": "FINAL_SUBMIT",
+                    "label": "Exam submitted",
+                    "created_at": "2026-09-20 00:57:24",
+                    "description": "Submission activity"
+                },
+                {
+                    "event": "RESUBMIT",
+                    "label": "Exam resubmitted",
+                    "created_at": "2026-09-20 00:56:52",
+                    "description": "Submission activity"
+                },
+                {
+                    "event": "RESUBMIT",
+                    "label": "Exam resubmitted",
+                    "created_at": "2026-09-20 00:56:39",
+                    "description": "Submission activity"
+                },
+                {
+                    "event": "RESUBMIT",
+                    "label": "Exam resubmitted",
+                    "created_at": "2026-09-20 00:51:10",
+                    "description": "Submission activity"
+                }
+            ],
+            "session": {
+                "ip": "::1",
+                "browser": "Chrome 153.0.0.0",
+                "os": "Windows 10",
+                "device": "Desktop"
+            }
+        },
+        {
+            "user_id": 3,
+            "name": "Priya Raghavan",
+            "applicant_id": "APP-2026-04817",
+            "status": "not_started",
+            "progress": 0,
+            "answered_count": 0,
+            "total_count": 7,
+            "time_remaining": null,
+            "started_at": null,
+            "last_activity": null,
+            "submitted_at": null,
+            "time_used": 0,
+            "tasks": [
+                {
+                    "label": "File upload",
+                    "answered": 0,
+                    "total": 2,
+                    "status": "Not started"
+                },
+                {
+                    "label": "Written response",
+                    "answered": 0,
+                    "total": 5,
+                    "status": "Not started"
+                }
+            ],
+            "current_task": "File upload",
+            "attention": false,
+            "attention_reasons": [],
+            "events": [],
+            "session": {
+                "ip": null,
+                "browser": null,
+                "os": null,
+                "device": null
+            }
+        }
+    ],
+    "events": [
+        {
+            "applicant_id": "AE-000",
+            "applicant_name": "Hasan Sonet",
+            "event": "RESUBMIT",
+            "label": "Exam resubmitted",
+            "created_at": "2026-09-20 01:19:56"
+        },
+        {
+            "applicant_id": "AE-000",
+            "applicant_name": "Hasan Sonet",
+            "event": "RESUBMIT",
+            "label": "Exam resubmitted",
+            "created_at": "2026-09-20 01:17:20"
+        },
+        {
+            "applicant_id": "AE-000",
+            "applicant_name": "Hasan Sonet",
+            "event": "RESUBMIT",
+            "label": "Exam resubmitted",
+            "created_at": "2026-09-20 01:13:26"
+        },
+        {
+            "applicant_id": "AE-000",
+            "applicant_name": "Hasan Sonet",
+            "event": "RESUBMIT",
+            "label": "Exam resubmitted",
+            "created_at": "2026-09-20 01:01:22"
+        },
+        {
+            "applicant_id": "AE-000",
+            "applicant_name": "Hasan Sonet",
+            "event": "FINAL_SUBMIT",
+            "label": "Exam submitted",
+            "created_at": "2026-09-20 00:57:24"
+        },
+        {
+            "applicant_id": "AE-000",
+            "applicant_name": "Hasan Sonet",
+            "event": "RESUBMIT",
+            "label": "Exam resubmitted",
+            "created_at": "2026-09-20 00:56:52"
+        },
+        {
+            "applicant_id": "AE-000",
+            "applicant_name": "Hasan Sonet",
+            "event": "RESUBMIT",
+            "label": "Exam resubmitted",
+            "created_at": "2026-09-20 00:56:39"
+        },
+        {
+            "applicant_id": "AE-000",
+            "applicant_name": "Hasan Sonet",
+            "event": "RESUBMIT",
+            "label": "Exam resubmitted",
+            "created_at": "2026-09-20 00:51:10"
+        }
+    ]
+}

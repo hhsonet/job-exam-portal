@@ -339,6 +339,7 @@ const BANGLADESH_DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
 });
 const UPLOAD_URL = <?= json_encode(site_url('exam/upload')) ?>;
 const AUTOSAVE_URL = <?= json_encode(site_url('exam/autosave')) ?>;
+const ACTIVITY_URL = <?= json_encode(site_url('exam/activity')) ?>;
 const SUBMIT_URL = <?= json_encode(site_url('exam/submit')) ?>;
 
 const QUESTIONS = <?= json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
@@ -454,6 +455,16 @@ async function saveDraft() {
     state.saveState = "queued";
   }
   render();
+}
+
+function sendActivity(eventName) {
+  if (!EXAM_ID || state.screen !== "exam") return;
+  fetch(ACTIVITY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ examId: EXAM_ID, event: eventName }),
+    keepalive: true
+  }).catch(() => {});
 }
 
 function markSaving() {
@@ -875,6 +886,13 @@ window.addEventListener("beforeunload", (e) => {
 
 window.addEventListener("offline", () => { state.offline = true; state.saveState = "queued"; cacheDraft(); render(); });
 window.addEventListener("online", () => { state.offline = false; saveDraft(); });
+document.addEventListener("visibilitychange", () => sendActivity(document.hidden ? "TAB_HIDDEN" : "TAB_VISIBLE"));
+window.addEventListener("blur", () => sendActivity("FOCUS_LOST"));
+window.addEventListener("focus", () => sendActivity("FOCUS_RESTORED"));
+window.addEventListener("offline", () => sendActivity("CONNECTION_LOST"));
+window.addEventListener("online", () => sendActivity("CONNECTION_RESTORED"));
+
+setInterval(() => sendActivity("HEARTBEAT"), 15000);
 
 setInterval(() => {
   if (state.screen !== "exam") return;

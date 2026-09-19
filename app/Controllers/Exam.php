@@ -461,6 +461,60 @@ class Exam extends BaseController
         return $this->response->setJSON(['savedAt' => date('c')]);
     }
 
+    public function activity(): ResponseInterface
+    {
+        if ($denied = $this->requireAuth()) {
+            return $denied;
+        }
+
+        $payload = $this->request->getJSON(true) ?? [];
+        $examId = (int) ($payload['examId'] ?? 0);
+        $event = strtoupper(trim((string) ($payload['event'] ?? '')));
+        $allowedEvents = [
+            'TAB_HIDDEN',
+            'TAB_VISIBLE',
+            'CONNECTION_LOST',
+            'CONNECTION_RESTORED',
+            'FOCUS_LOST',
+            'FOCUS_RESTORED',
+            'HEARTBEAT',
+        ];
+        if (! in_array($event, $allowedEvents, true)) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Unsupported activity event.']);
+        }
+
+        $applicant = $this->currentApplicant();
+        $exam = $this->assignedExam($applicant);
+        if (! $applicant || ! $exam || $examId !== (int) $exam['id']) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Assessment access denied.']);
+        }
+
+        $attempt = $this->attemptFor($examId, (string) $applicant['applicant_code']);
+        if (! $attempt) {
+            return $this->response->setStatusCode(204);
+        }
+
+        $now = date('Y-m-d H:i:s');
+        db_connect()->table('exam_attempts')
+            ->where(['exam_id' => $examId, 'applicant_id' => $applicant['applicant_code']])
+            ->update(['updated_at' => $now]);
+
+        if ($event !== 'HEARTBEAT') {
+            (new \App\Services\AuditLogService())->log('APPLICANT_' . $event, (int) $applicant['id'], [
+                'actorType' => 'applicant',
+                'entityType' => 'exam_activity',
+                'entityId' => (string) $examId,
+                'description' => 'Applicant exam activity: ' . strtolower(str_replace('_', ' ', $event)) . '.',
+                'metadata' => [
+                    'exam_id' => $examId,
+                    'applicant_id' => $applicant['applicant_code'],
+                ],
+            ]);
+        }
+
+        return $this->response->setJSON(['savedAt' => date('c')]);
+    }
+
     public function upload(): ResponseInterface
     {
         if ($denied = $this->requireAuth()) {
