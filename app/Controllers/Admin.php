@@ -370,6 +370,21 @@ class Admin extends BaseController
         return view('admin/exam_questions', ['exam' => $exam, 'questions' => $questions]);
     }
 
+    private function normaliseAllowedFileTypes(mixed $value, string $questionType): array
+    {
+        if ($questionType !== 'upload') {
+            return [];
+        }
+
+        $values = is_array($value) ? $value : [$value];
+        $values = array_values(array_intersect(['pdf', 'excel', 'all'], array_map('strtolower', array_map('strval', $values))));
+        if (in_array('all', $values, true)) {
+            return ['all'];
+        }
+
+        return $values ?: ['pdf'];
+    }
+
     public function createQuestion(): string|ResponseInterface
     {
         if ($redirect = $this->requireAdmin()) {
@@ -385,6 +400,7 @@ class Admin extends BaseController
             'hint' => trim((string) $this->request->getPost('hint')),
             'points' => max(1, (int) $this->request->getPost('points')),
             'options' => $this->request->getPost('options'),
+            'allowed_file_types' => $this->normaliseAllowedFileTypes($this->request->getPost('allowed_file_types'), (string) $this->request->getPost('type')),
         ];
 
         $validTypes = ['single', 'multi', 'bool', 'written', 'upload'];
@@ -423,6 +439,7 @@ class Admin extends BaseController
         db_connect()->table('questions')->insert([
             'exam_id' => $data['exam_id'] ?: null,
             'type' => $data['type'],
+            'allowed_file_types' => $data['type'] === 'upload' ? json_encode($data['allowed_file_types']) : null,
             'prompt' => $data['prompt'],
             'hint' => $data['hint'] ?: null,
             'points' => $data['points'],
@@ -468,7 +485,7 @@ class Admin extends BaseController
 
         $examId = $examId ?: (int) $this->request->getGet('exam_id');
         $exams = db_connect()->table('exams')->orderBy('id', 'DESC')->get()->getResultArray();
-        return view('admin/question_form', ['error' => null, 'data' => ['exam_id' => $examId], 'exams' => $exams]);
+        return view('admin/question_form', ['error' => null, 'data' => ['exam_id' => $examId, 'allowed_file_types' => ['pdf']], 'exams' => $exams]);
     }
 
     public function editQuestion(int $id): string|ResponseInterface
@@ -485,17 +502,21 @@ class Admin extends BaseController
 
         $options = $question['options'] ? json_decode($question['options'], true) : [];
         $optionText = implode("\n", array_map(static fn (array $option): string => (string) ($option['text'] ?? ''), is_array($options) ? $options : []));
+        $allowedFileTypes = $question['allowed_file_types'] ? json_decode($question['allowed_file_types'], true) : ['pdf'];
+        $allowedFileTypes = is_array($allowedFileTypes) && $allowedFileTypes ? $allowedFileTypes : ['pdf'];
         return view('admin/question_form', [
             'error' => null,
             'data' => [
                 'exam_id' => (int) $question['exam_id'],
                 'type' => $question['type'],
+                'allowed_file_types' => $allowedFileTypes,
                 'prompt' => $question['prompt'],
                 'hint' => $question['hint'],
                 'points' => $question['points'],
                 'options' => $optionText,
             ],
             'exams' => $db->table('exams')->orderBy('id', 'DESC')->get()->getResultArray(),
+            'questionId' => $id,
             'existingAttachments' => $db->table('question_attachments')->where('question_id', $id)->orderBy('id', 'ASC')->get()->getResultArray(),
             'formAction' => site_url('admin/questions/' . $id . '/update'),
             'formTitle' => 'Edit question',
@@ -524,11 +545,13 @@ class Admin extends BaseController
             'hint' => trim((string) $this->request->getPost('hint')),
             'points' => max(1, (int) $this->request->getPost('points')),
             'options' => (string) $this->request->getPost('options'),
+            'allowed_file_types' => $this->normaliseAllowedFileTypes($this->request->getPost('allowed_file_types'), (string) $this->request->getPost('type')),
         ];
         $formData = [
             'error' => null,
             'data' => $data,
             'exams' => $exams,
+            'questionId' => $id,
             'existingAttachments' => $existingAttachments,
             'formAction' => site_url('admin/questions/' . $id . '/update'),
             'formTitle' => 'Edit question',
@@ -576,6 +599,7 @@ class Admin extends BaseController
         $db->table('questions')->where('id', $id)->update([
             'exam_id' => $data['exam_id'] ?: null,
             'type' => $data['type'],
+            'allowed_file_types' => $data['type'] === 'upload' ? json_encode($data['allowed_file_types']) : null,
             'prompt' => $data['prompt'],
             'hint' => $data['hint'] ?: null,
             'points' => $data['points'],

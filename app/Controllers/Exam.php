@@ -95,6 +95,26 @@ class Exam extends BaseController
             ->countAllResults();
     }
 
+    private function uploadedFileType($file): ?string
+    {
+        $extension = strtolower((string) pathinfo((string) $file->getClientName(), PATHINFO_EXTENSION));
+        $mime = strtolower((string) $file->getMimeType());
+        if ($extension === 'pdf' && $mime === 'application/pdf') {
+            return 'pdf';
+        }
+        if (in_array($extension, ['xls', 'xlsx'], true) && in_array($mime, [
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel.sheet.macroenabled.12',
+            'application/octet-stream',
+            'application/zip',
+        ], true)) {
+            return 'excel';
+        }
+
+        return null;
+    }
+
     private function submissionFor(int $examId, string $applicantCode): ?array
     {
         return db_connect()->table('submissions')
@@ -321,9 +341,12 @@ class Exam extends BaseController
                 ->where(['exam_id' => $exam['id'], 'is_active' => 1])
                 ->orderBy('id', 'ASC')->get()->getResultArray();
             $questions = array_map(static function (array $question): array {
+                $allowedFileTypes = $question['allowed_file_types'] ? json_decode($question['allowed_file_types'], true) : ['pdf'];
+                $allowedFileTypes = is_array($allowedFileTypes) && $allowedFileTypes ? $allowedFileTypes : ['pdf'];
                 return [
                     'id' => 'q' . $question['id'],
                     'type' => $question['type'],
+                    'allowedFileTypes' => $allowedFileTypes,
                     'points' => (int) $question['points'],
                     'prompt' => $question['prompt'],
                     'hint' => $question['hint'],
@@ -424,11 +447,25 @@ class Exam extends BaseController
         if ($file === null || ! $file->isValid()) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'No valid file was received.']);
         }
-        if ($file->getMimeType() !== 'application/pdf') {
-            return $this->response->setStatusCode(422)->setJSON(['error' => 'That file is not a PDF. Please upload a PDF document.']);
+        $questionId = (int) $this->request->getPost('question_id');
+        $question = db_connect()->table('questions')->where([
+            'id' => $questionId,
+            'exam_id' => $examId,
+            'is_active' => 1,
+            'type' => 'upload',
+        ])->get()->getRowArray();
+        if (! $question) {
+            return $this->response->setStatusCode(422)->setJSON(['error' => 'This file upload question is not available.']);
+        }
+        $allowedFileTypes = $question['allowed_file_types'] ? json_decode($question['allowed_file_types'], true) : ['pdf'];
+        $allowedFileTypes = is_array($allowedFileTypes) && $allowedFileTypes ? $allowedFileTypes : ['pdf'];
+        $uploadedFileType = $this->uploadedFileType($file);
+        if (! in_array('all', $allowedFileTypes, true) && ($uploadedFileType === null || ! in_array($uploadedFileType, $allowedFileTypes, true))) {
+            $allowedLabel = in_array('pdf', $allowedFileTypes, true) && in_array('excel', $allowedFileTypes, true) ? 'PDF or Excel' : (in_array('excel', $allowedFileTypes, true) ? 'Excel' : 'PDF');
+            return $this->response->setStatusCode(422)->setJSON(['error' => 'This question accepts ' . $allowedLabel . ' files only.']);
         }
         if ($file->getSize() > 10 * 1024 * 1024) {
-            return $this->response->setStatusCode(422)->setJSON(['error' => 'That file is larger than 10 MB. Please upload a smaller PDF.']);
+            return $this->response->setStatusCode(422)->setJSON(['error' => 'That file is larger than 10 MB. Please upload a smaller file.']);
         }
 
         $applicantCode = (string) session()->get('applicant_id');

@@ -165,7 +165,7 @@
 
           <div id="uploadBlock" class="hidden">
             <div id="uploadHasFile" class="hidden" style="display: flex; align-items: center; gap: 16px; padding: 20px; border: 1px solid var(--border-input); border-radius: 10px; background: #FFFFFF; flex-wrap: wrap;">
-              <div style="flex: none; width: 44px; height: 52px; border: 1px solid var(--border-input); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; color: var(--red-strong); background: #FDF6F6;">PDF</div>
+              <div id="uploadFileIcon" style="flex: none; width: 44px; height: 52px; border: 1px solid var(--border-input); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; color: var(--red-strong); background: #FDF6F6;">FILE</div>
               <div style="min-width: 0; flex: 1 1 200px;">
                 <div id="fileName" style="font-size: 17px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
                 <div id="fileMeta" style="font-size: 14px; color: var(--ink-faint); margin-top: 4px;"></div>
@@ -174,17 +174,17 @@
               <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <label style="font-size: 15px; font-weight: 600; color: var(--blue); background: #FFFFFF; border: 1px solid var(--border-input); border-radius: 8px; padding: 11px 18px; cursor: pointer; white-space: nowrap;">
                   Replace file
-                  <input id="replaceFileInput" type="file" accept="application/pdf" style="display: none;">
+                  <input id="replaceFileInput" type="file" style="display: none;">
                 </label>
                 <button id="removeFileBtn" style="font-size: 15px; font-weight: 600; color: var(--ink-muted); background: #FFFFFF; border: 1px solid var(--border-input); border-radius: 8px; padding: 11px 18px; cursor: pointer; white-space: nowrap;">Remove</button>
               </div>
             </div>
 
             <label id="dropZone" class="dropzone hidden">
-              <div style="font-size: 18px; font-weight: 600; color: var(--navy);">Drop your PDF here, or choose a file</div>
-              <div style="font-size: 15px; color: var(--ink-faint);">PDF only · maximum 10 MB · one file</div>
+              <div id="uploadPrompt" style="font-size: 18px; font-weight: 600; color: var(--navy);">Drop your file here, or choose a file</div>
+              <div id="uploadRules" style="font-size: 15px; color: var(--ink-faint);">Allowed file types · maximum 10 MB · one file</div>
               <span style="margin-top: 10px; font-size: 16px; font-weight: 600; color: #FFFFFF; background: var(--blue); border-radius: 10px; padding: 13px 24px;">Choose file</span>
-              <input id="fileInput" type="file" accept="application/pdf" style="display: none;">
+                  <input id="fileInput" type="file" style="display: none;">
             </label>
 
             <div id="uploadErrorBox" class="hidden" role="alert" style="margin-top: 14px; background: var(--red-bg); border: 1px solid var(--red-border); border-radius: 10px; padding: 14px 18px; font-size: 15px; font-weight: 600; color: var(--red-ink);"></div>
