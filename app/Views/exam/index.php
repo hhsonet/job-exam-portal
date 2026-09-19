@@ -366,6 +366,33 @@ function isAnswered(q) {
   return String(v).trim().length > 0;
 }
 
+function allowedFileTypes(q) {
+  const types = Array.isArray(q.allowedFileTypes) && q.allowedFileTypes.length ? q.allowedFileTypes : ["pdf"];
+  return types.indexOf("all") >= 0 ? ["all"] : types;
+}
+
+function allowedFileLabel(q) {
+  const types = allowedFileTypes(q);
+  if (types.indexOf("all") >= 0) return "All file types";
+  return types.map((type) => type === "excel" ? "Excel" : "PDF").join(" or ");
+}
+
+function fileAccept(q) {
+  const types = allowedFileTypes(q);
+  if (types.indexOf("all") >= 0) return "";
+  const accepts = [];
+  if (types.indexOf("pdf") >= 0) accepts.push(".pdf", "application/pdf");
+  if (types.indexOf("excel") >= 0) accepts.push(".xls", ".xlsx", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  return accepts.join(",");
+}
+
+function isAllowedFile(q, file) {
+  const types = allowedFileTypes(q);
+  if (types.indexOf("all") >= 0) return true;
+  const extension = String(file.name || "").split(".").pop().toLowerCase();
+  return (types.indexOf("pdf") >= 0 && extension === "pdf") || (types.indexOf("excel") >= 0 && ["xls", "xlsx"].indexOf(extension) >= 0);
+}
+
 function cacheDraft() {
   if (!EXAM_ID) return;
   localStorage.setItem(DRAFT_KEY, JSON.stringify({ index: state.index, answers: state.answers, updatedAt: Date.now() }));
@@ -426,8 +453,8 @@ function go(i) {
 }
 
 async function uploadFile(q, file) {
-  if (file.type !== "application/pdf") { state.uploadError = "That file is not a PDF. Please upload a PDF document."; render(); return; }
-  if (file.size > 10 * 1024 * 1024) { state.uploadError = "That file is larger than 10 MB. Please upload a smaller PDF."; render(); return; }
+  if (!isAllowedFile(q, file)) { state.uploadError = "This question accepts " + allowedFileLabel(q) + " files only."; render(); return; }
+  if (file.size > 10 * 1024 * 1024) { state.uploadError = "That file is larger than 10 MB. Please upload a smaller file."; render(); return; }
 
   state.uploadError = null;
   state.uploading = true;
@@ -436,6 +463,7 @@ async function uploadFile(q, file) {
   const form = new FormData();
   form.append("file", file);
   form.append("exam_id", String(EXAM_ID));
+  form.append("question_id", String(q.id).replace(/^q/, ""));
 
   try {
     const res = await fetch(UPLOAD_URL, { method: "POST", body: form });
@@ -564,7 +592,7 @@ function render() {
   el("progressBar").style.width = pct + "%";
 
   el("questionCounter").textContent = "Question " + (state.index + 1) + " of " + QUESTIONS.length;
-  el("typeLabel").textContent = q.type === "single" ? "Multiple choice — one answer" : q.type === "multi" ? "Multiple choice — select all that apply" : q.type === "bool" ? "True or false" : q.type === "upload" ? "File upload — PDF" : "Written answer";
+  el("typeLabel").textContent = q.type === "single" ? "Multiple choice — one answer" : q.type === "multi" ? "Multiple choice — select all that apply" : q.type === "bool" ? "True or false" : q.type === "upload" ? "File upload — " + allowedFileLabel(q) : "Written answer";
   el("pointsLabel").textContent = q.points + (q.points === 1 ? " point" : " points");
   el("promptText").textContent = q.prompt;
   el("hintText").textContent = q.hint;
@@ -635,6 +663,12 @@ function render() {
   }
 
   if (q.type === "upload") {
+    const fileLabel = allowedFileLabel(q);
+    const accept = fileAccept(q);
+    ["fileInput", "replaceFileInput"].forEach((id) => { const input = el(id); if (accept) input.setAttribute("accept", accept); else input.removeAttribute("accept"); });
+    el("uploadFileIcon").textContent = fileLabel === "All file types" ? "FILE" : fileLabel === "Excel" ? "XLS" : "PDF";
+    el("uploadPrompt").textContent = "Drop your file here, or choose a file";
+    el("uploadRules").textContent = fileLabel + " · maximum 10 MB · one file";
     const answerVal = state.answers[q.id];
     const hasFile = !!(answerVal && answerVal.name);
     el("uploadHasFile").classList.toggle("hidden", !hasFile);
@@ -646,6 +680,7 @@ function render() {
       el("uploadStatus").textContent = statusText;
       el("uploadStatus").style.color = state.uploading ? "#44536B" : (state.offline ? "#8A4708" : "#0F7B4F");
     }
+    if (hasFile) el("fileMeta").textContent = (answerVal.size || "") + " · " + fileLabel;
     el("dropZone").classList.toggle("drag-active", state.dragActive);
     el("uploadErrorBox").classList.toggle("hidden", !state.uploadError);
     el("uploadErrorBox").textContent = state.uploadError || "";

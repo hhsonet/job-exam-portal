@@ -175,6 +175,31 @@ class Exam extends BaseController
         return array_intersect_key($answers, $allowed);
     }
 
+    private function canonicalise(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $result = [];
+        foreach ($value as $key => $item) {
+            $result[$key] = $this->canonicalise($item);
+        }
+        if (array_keys($result) !== range(0, count($result) - 1)) {
+            ksort($result);
+        }
+
+        return $result;
+    }
+
+    private function snapshotHash(array $snapshot): string
+    {
+        return hash('sha256', json_encode(
+            $this->canonicalise($snapshot),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION
+        ));
+    }
+
     public function loginForm(): string|ResponseInterface
     {
         if (session()->get('exam_authenticated')) {
@@ -187,20 +212,27 @@ class Exam extends BaseController
     public function login(): ResponseInterface
     {
         $session = session();
-        $lockedUntil = (int) $session->get('login_locked_until');
-        if ($lockedUntil > time()) {
-            return $this->response->setStatusCode(423)->setJSON(['error' => 'locked']);
-        }
-
         $payload = $this->request->getJSON(true) ?? [];
         $id = trim((string) ($payload['id'] ?? ''));
         $password = (string) ($payload['pw'] ?? '');
+        $lockedUntil = (int) $session->get('login_locked_until');
+        if ($lockedUntil > time()) {
+            (new \App\Services\AuditLogService())->recordLogin(null, $id, 'FAILED', 'ACCOUNT_LOCKED');
+            return $this->response->setStatusCode(423)->setJSON(['error' => 'locked']);
+        }
+
         $applicant = db_connect()->table('users')
             ->where('applicant_code', $id)
             ->where('usertype', 'applicant')
             ->get()->getRowArray();
 
         if (! $applicant || ! password_verify($password, $applicant['password_hash'])) {
+            (new \App\Services\AuditLogService())->recordLogin(
+                $applicant ? (int) $applicant['id'] : null,
+                $id,
+                'FAILED',
+                $applicant ? 'INVALID_CREDENTIALS' : 'USER_NOT_FOUND'
+            );
             $attempts = (int) $session->get('login_attempts') + 1;
             $session->set('login_attempts', $attempts);
             if ($attempts >= self::MAX_ATTEMPTS) {
@@ -216,6 +248,7 @@ class Exam extends BaseController
         }
 
         $session->remove(['login_attempts', 'login_locked_until', 'selected_exam_id', 'submitted_exam_id']);
+        $session->regenerate(true);
         $session->set([
             'exam_authenticated' => true,
             'applicant_user_id' => (int) $applicant['id'],
@@ -223,12 +256,14 @@ class Exam extends BaseController
             'applicant_name' => $applicant['full_name'],
             'applicant_email' => $applicant['email'] ?? '',
         ]);
+        (new \App\Services\AuditLogService())->recordLogin((int) $applicant['id'], $applicant['applicant_code'], 'SUCCESS');
 
         return $this->response->setJSON(['redirect' => site_url('dashboard')]);
     }
 
     public function logout(): ResponseInterface
     {
+        (new \App\Services\AuditLogService())->recordLogout((int) session()->get('applicant_user_id'), 'LOGOUT');
         session()->destroy();
         return redirect()->to('/login');
     }

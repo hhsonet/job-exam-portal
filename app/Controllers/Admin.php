@@ -36,6 +36,12 @@ class Admin extends BaseController
             ->getRowArray();
 
         if (! $user || ! password_verify($password, $user['password_hash'])) {
+            (new \App\Services\AuditLogService())->recordLogin(
+                $user ? (int) $user['id'] : null,
+                $username,
+                'FAILED',
+                $user ? 'INVALID_CREDENTIALS' : 'USER_NOT_FOUND'
+            );
             return view('admin/login', [
                 'error' => 'Invalid admin username or password.',
             ]);
@@ -48,12 +54,14 @@ class Admin extends BaseController
             'admin_username'      => $user['username'],
             'admin_usertype'      => $user['usertype'],
         ]);
+        (new \App\Services\AuditLogService())->recordLogin((int) $user['id'], $user['username'], 'SUCCESS');
 
         return redirect()->to('/admin');
     }
 
     public function logout(): ResponseInterface
     {
+        (new \App\Services\AuditLogService())->recordLogout((int) session()->get('admin_id'), 'LOGOUT');
         session()->remove([
             'admin_authenticated',
             'admin_id',
