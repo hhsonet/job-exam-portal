@@ -1,0 +1,55 @@
+<?php
+
+use CodeIgniter\Router\RouteCollection;
+
+/** @var RouteCollection $routes */
+$routes->get('/', 'Exam::dashboard');
+$routes->get('dashboard', 'Exam::dashboard');
+$routes->get('exam', 'Exam::examPage');
+$routes->get('exam/dashboard', 'Exam::dashboard');
+$routes->get('exam/submitted', 'Exam::submittedPage');
+$routes->get('login', 'Exam::loginForm');
+$routes->post('login', 'Exam::login');
+$routes->get('logout', 'Exam::logout');
+$routes->get('welcome', 'Home::index');
+$routes->post('exam/upload', 'Exam::upload');
+$routes->post('exam/autosave', 'Exam::autosave');
+$routes->post('exam/submit', 'Exam::submit');
+$routes->get('exam/questions/(:num)/attachment', 'Exam::questionAttachment/$1');
+$routes->get('exam/questions/(:num)/attachment/(:num)', 'Exam::questionAttachment/$1/$2');
+$routes->get('admin/login', 'Admin::loginForm');
+$routes->post('admin/login', 'Admin::login');
+$routes->get('admin/logout', 'Admin::logout');
+$routes->get('admin', 'Admin::index');
+$routes->get('admin/questions', 'Admin::questions');
+$routes->get('admin/questions/new', 'Admin::newQuestion');
+$routes->get('admin/questions/create', 'Admin::newQuestion');
+$routes->post('admin/questions', 'Admin::createQuestion');
+$routes->post('admin/questions/store', 'Admin::createQuestion');
+$routes->post('admin/questions/(:num)/delete', 'Admin::deleteQuestion/$1');
+$routes->get('admin/questions/(:num)/attachment', 'Admin::questionAttachment/$1');
+$routes->get('admin/questions/(:num)/attachment/(:num)', 'Admin::questionAttachment/$1/$2');
+$routes->get('admin/submissions', 'Admin::submissions');
+$routes->get('admin/submissions/(:num)', 'Admin::submissionDetail/$1');
+$routes->post('admin/submissions/(:num)/mark', 'Admin::markSubmission/$1');
+$routes->get('admin/applicants', 'Admin::applicants');
+$routes->get('admin/applicants/new', 'Admin::newApplicant');
+$routes->get('admin/applicants/create', 'Admin::newApplicant');
+$routes->get('admin/applicants/(:num)/edit', 'Admin::editApplicant/$1');
+$routes->post('admin/applicants', 'Admin::createApplicant');
+$routes->post('admin/applicants/create', 'Admin::createApplicant');
+$routes->post('admin/applicants/(:num)/update', 'Admin::updateApplicant/$1');
+$routes->post('admin/applicants/(:num)/delete', 'Admin::deleteApplicant/$1');
+$routes->get('admin/applicants/bulk-upload', 'Admin::bulkApplicantForm');
+$routes->post('admin/applicants/bulk-upload', 'Admin::bulkApplicantUpload');
+$routes->get('admin/applicants/template', 'Admin::applicantTemplate');
+$routes->get('admin/exams', 'Admin::exams');
+$routes->get('admin/exams/new', 'Admin::newExam');
+$routes->get('admin/exams/create', 'Admin::newExam');
+$routes->get('admin/exams/(:num)/edit', 'Admin::editExam/$1');
+$routes->post('admin/exams', 'Admin::createExam');
+$routes->post('admin/exams/create', 'Admin::createExam');
+$routes->post('admin/exams/(:num)/update', 'Admin::updateExam/$1');
+$routes->post('admin/exams/(:num)/delete', 'Admin::deleteExam/$1');
+$routes->get('admin/exams/(:num)/questions', 'Admin::examQuestions/$1');
+$routes->get('admin/exams/(:num)/questions/create', 'Admin::newQuestion/$1');
