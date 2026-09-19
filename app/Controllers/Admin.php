@@ -471,6 +471,143 @@ class Admin extends BaseController
         return view('admin/question_form', ['error' => null, 'data' => ['exam_id' => $examId], 'exams' => $exams]);
     }
 
+    public function editQuestion(int $id): string|ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $db = db_connect();
+        $question = $db->table('questions')->where('id', $id)->get()->getRowArray();
+        if (! $question) {
+            return redirect()->to('/admin/questions');
+        }
+
+        $options = $question['options'] ? json_decode($question['options'], true) : [];
+        $optionText = implode("\n", array_map(static fn (array $option): string => (string) ($option['text'] ?? ''), is_array($options) ? $options : []));
+        return view('admin/question_form', [
+            'error' => null,
+            'data' => [
+                'exam_id' => (int) $question['exam_id'],
+                'type' => $question['type'],
+                'prompt' => $question['prompt'],
+                'hint' => $question['hint'],
+                'points' => $question['points'],
+                'options' => $optionText,
+            ],
+            'exams' => $db->table('exams')->orderBy('id', 'DESC')->get()->getResultArray(),
+            'existingAttachments' => $db->table('question_attachments')->where('question_id', $id)->orderBy('id', 'ASC')->get()->getResultArray(),
+            'formAction' => site_url('admin/questions/' . $id . '/update'),
+            'formTitle' => 'Edit question',
+            'submitLabel' => 'Save question',
+        ]);
+    }
+
+    public function updateQuestion(int $id): string|ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $db = db_connect();
+        $question = $db->table('questions')->where('id', $id)->get()->getRowArray();
+        $exams = $db->table('exams')->orderBy('id', 'DESC')->get()->getResultArray();
+        $existingAttachments = $db->table('question_attachments')->where('question_id', $id)->orderBy('id', 'ASC')->get()->getResultArray();
+        if (! $question) {
+            return redirect()->to('/admin/questions');
+        }
+
+        $data = [
+            'exam_id' => (int) $this->request->getPost('exam_id'),
+            'type' => (string) $this->request->getPost('type'),
+            'prompt' => trim((string) $this->request->getPost('prompt')),
+            'hint' => trim((string) $this->request->getPost('hint')),
+            'points' => max(1, (int) $this->request->getPost('points')),
+            'options' => (string) $this->request->getPost('options'),
+        ];
+        $formData = [
+            'error' => null,
+            'data' => $data,
+            'exams' => $exams,
+            'existingAttachments' => $existingAttachments,
+            'formAction' => site_url('admin/questions/' . $id . '/update'),
+            'formTitle' => 'Edit question',
+            'submitLabel' => 'Save question',
+        ];
+
+        $validTypes = ['single', 'multi', 'bool', 'written', 'upload'];
+        if (! in_array($data['type'], $validTypes, true) || $data['prompt'] === '') {
+            $formData['error'] = 'Choose a valid type and enter a question prompt.';
+            return view('admin/question_form', $formData);
+        }
+
+        $options = null;
+        if (in_array($data['type'], ['single', 'multi', 'bool'], true)) {
+            $rows = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $data['options']))));
+            if (count($rows) < 2) {
+                $formData['error'] = 'Choice-based questions need at least two options.';
+                return view('admin/question_form', $formData);
+            }
+            $options = [];
+            foreach ($rows as $index => $text) {
+                $options[] = ['key' => chr(65 + $index), 'text' => $text];
+            }
+        }
+
+        $attachments = [];
+        $attachmentNames = $this->request->getPost('attachment_names') ?? [];
+        $attachmentNames = is_array($attachmentNames) ? $attachmentNames : [];
+        foreach ($this->request->getFileMultiple('attachments') ?? [] as $attachment) {
+            if ($attachment->getError() === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            if (! $attachment->isValid()) {
+                $formData['error'] = 'One of the attachments could not be uploaded.';
+                return view('admin/question_form', $formData);
+            }
+            if ($attachment->getSize() > 10 * 1024 * 1024) {
+                $formData['error'] = 'Each attachment must be 10 MB or smaller.';
+                return view('admin/question_form', $formData);
+            }
+            $attachments[] = $attachment;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $db->table('questions')->where('id', $id)->update([
+            'exam_id' => $data['exam_id'] ?: null,
+            'type' => $data['type'],
+            'prompt' => $data['prompt'],
+            'hint' => $data['hint'] ?: null,
+            'points' => $data['points'],
+            'options' => $options ? json_encode($options) : null,
+            'updated_at' => $now,
+        ]);
+
+        if ($attachments) {
+            $targetDir = WRITEPATH . 'uploads/questions';
+            if (! is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+            foreach ($attachments as $index => $attachment) {
+                $storedName = $attachment->getRandomName();
+                $attachment->move($targetDir, $storedName);
+                $displayName = trim((string) ($attachmentNames[$index] ?? ''));
+                if ($displayName !== '') {
+                    $displayName = basename(str_replace('\\', '/', $displayName));
+                    $displayName = preg_replace('/[\x00-\x1F\x7F]/u', '', $displayName) ?: '';
+                }
+                $db->table('question_attachments')->insert([
+                    'question_id' => $id,
+                    'original_name' => mb_substr($displayName ?: $attachment->getClientName(), 0, 255),
+                    'stored_name' => $storedName,
+                    'created_at' => $now,
+                ]);
+            }
+        }
+
+        return redirect()->to('/admin/questions');
+    }
+
     public function deleteQuestion(int $id): ResponseInterface
     {
         if ($redirect = $this->requireAdmin()) {
