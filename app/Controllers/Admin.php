@@ -3,7 +3,6 @@
 namespace App\Controllers;
 
 use App\Libraries\CredentialPdf;
-use App\Libraries\TypingAnswerPdf;
 use App\Services\TypingVerificationService;
 use CodeIgniter\HTTP\ResponseInterface;
 
@@ -1775,42 +1774,4 @@ class Admin extends BaseController
         return $this->response->download($filePath, null)->setFileName($downloadName);
     }
 
-    public function typingAnswerPdf(int $submissionId, int $questionId): ResponseInterface
-    {
-        if ($redirect = $this->requireAdmin()) {
-            return $redirect;
-        }
-
-        $db = db_connect();
-        $submission = $db->table('submissions')->where('id', $submissionId)->get()->getRowArray();
-        $question = $submission
-            ? $db->table('questions')->where(['id' => $questionId, 'exam_id' => $submission['exam_id'], 'type' => 'typing'])->get()->getRowArray()
-            : null;
-        if (! $submission || ! $question) {
-            return $this->response->setStatusCode(404)->setBody('Typing answer not found.');
-        }
-
-        $answers = $submission['answers'] ? (json_decode($submission['answers'], true) ?: []) : [];
-        $answer = $answers['q' . $questionId] ?? '';
-        $answer = is_scalar($answer) ? (string) $answer : '';
-        $mark = $db->table('submission_question_marks')
-            ->where(['submission_id' => $submissionId, 'question_id' => $questionId])
-            ->get()->getRowArray();
-        $evaluation = $mark && ($mark['similarity_percent'] !== null || $mark['verification_status'] !== null)
-            ? ['similarity' => (float) ($mark['similarity_percent'] ?? 0), 'status' => $mark['verification_status'] ?: 'Not evaluated']
-            : TypingVerificationService::evaluate((string) ($question['typing_answer'] ?? ''), $answer);
-        $pdf = TypingAnswerPdf::make([
-            'answer' => $answer,
-            'submissionId' => $submissionId,
-            'questionNumber' => 'Q' . $questionId,
-            'similarity' => rtrim(rtrim(number_format((float) $evaluation['similarity'], 2, '.', ''), '0'), '.'),
-            'status' => $evaluation['status'],
-        ]);
-
-        return $this->response
-            ->setHeader('Content-Type', 'application/pdf')
-            ->setHeader('Content-Disposition', 'attachment; filename="typing-answer-submission-' . $submissionId . '-question-' . $questionId . '.pdf"')
-            ->setHeader('Content-Length', (string) strlen($pdf))
-            ->setBody($pdf);
-    }
 }
