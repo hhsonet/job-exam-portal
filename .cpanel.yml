@@ -1,8 +1,0 @@
----
-deployment:
-  tasks:
-    - export REPO=/home/USERNAME/projects/exam
-    - export DEPLOYPATH=/home/examuiuac/public_html/
-    - /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader -d $REPO
-    - /bin/cp -R public/. $DEPLOYPATH
-    - sed -i "s|FCPATH . '../app/Config/Paths.php'|'/home/examuiuac/exam/job-exam-portal/app/Config/Paths.php'|" ${DEPLOYPATH}index.php
