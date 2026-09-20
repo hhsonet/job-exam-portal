@@ -26,8 +26,13 @@
 
           <label for="type">Question type</label>
           <select id="type" name="type">
-            <?php foreach (['single' => 'Single choice', 'multi' => 'Multiple choice', 'bool' => 'True / false', 'written' => 'Written answer', 'upload' => 'File upload'] as $type => $label): ?><option value="<?= $type ?>" <?= ($data['type'] ?? 'single') === $type ? 'selected' : '' ?>><?= $label ?></option><?php endforeach; ?>
+            <?php foreach (['single' => 'Single choice', 'multi' => 'Multiple choice', 'bool' => 'True / false', 'written' => 'Written answer', 'typing' => 'Typing test', 'upload' => 'File upload'] as $type => $label): ?><option value="<?= $type ?>" <?= ($data['type'] ?? 'single') === $type ? 'selected' : '' ?>><?= $label ?></option><?php endforeach; ?>
           </select>
+          <div id="typingAnswerField">
+            <label for="typing_answer">Reference text for verification</label>
+            <textarea id="typing_answer" name="typing_answer" placeholder="Enter the exact text the applicant must type."><?= esc($data['typing_answer'] ?? '') ?></textarea>
+            <p style="font-size:13px;color:#798196">The applicant sees the question prompt, not this reference text. Matching is checked securely on the server when the exam is submitted.</p>
+          </div>
           <div id="allowedFileTypesField">
             <label for="allowed_file_types">Allowed file types</label>
             <select id="allowed_file_types" name="allowed_file_types[]" multiple size="3" required>
@@ -88,12 +93,17 @@
     fileInput.name = 'attachments[]'; fileInput.hidden = true; row.append(label, hiddenName, fileInput, remove); list.append(row); closeModal();
   });
   const typeSelect = document.getElementById('type');
+  const typingAnswerField = document.getElementById('typingAnswerField');
+  const typingAnswerInput = document.getElementById('typing_answer');
   const fileTypesField = document.getElementById('allowedFileTypesField');
   const fileTypesSelect = document.getElementById('allowed_file_types');
   const syncFileTypes = () => { const visible = typeSelect.value === 'upload'; fileTypesField.hidden = !visible; fileTypesSelect.disabled = !visible; fileTypesSelect.required = visible; };
+  const syncTypingAnswer = () => { const visible = typeSelect.value === 'typing'; typingAnswerField.hidden = !visible; typingAnswerInput.disabled = !visible; typingAnswerInput.required = visible; };
   typeSelect.addEventListener('change', syncFileTypes);
+  typeSelect.addEventListener('change', syncTypingAnswer);
   fileTypesSelect.addEventListener('change', () => { const all = Array.from(fileTypesSelect.options).find((option) => option.value === 'all'); if (all && all.selected) Array.from(fileTypesSelect.options).forEach((option) => { if (option.value !== 'all') option.selected = false; }); });
   syncFileTypes();
+  syncTypingAnswer();
   bindPicker();
 })();
 </script>

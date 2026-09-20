@@ -29,7 +29,7 @@
               <tr>
                 <td><?= $index + 1 ?></td>
                 <td><strong><?= esc($question['prompt']) ?></strong><?php if ($question['hint']): ?><br><small style="color:#798196"><?= esc($question['hint']) ?></small><?php endif; ?><?php if ($question['options']): ?><details style="margin-top:8px;color:#69778d"><summary>View options</summary><ol><?php foreach ($question['options'] as $option): ?><li><?= esc($option['text']) ?></li><?php endforeach; ?></ol></details><?php endif; ?></td>
-                <td><?= esc($question['type']) ?></td>
+                <td><?= esc(['single' => 'Single choice', 'multi' => 'Multiple choice', 'bool' => 'True / false', 'written' => 'Written answer', 'typing' => 'Typing test', 'upload' => 'File upload'][$question['type']] ?? $question['type']) ?></td>
                 <td><?= esc($question['points']) ?></td>
                 <td><?= $question['is_active'] ? 'Active' : 'Inactive' ?></td>
                 <td><div class="action-cell"><a class="edit-btn" href="<?= site_url('admin/questions/' . $question['id'] . '/edit') ?>">Edit</a><form method="post" action="<?= site_url('admin/questions/' . $question['id'] . '/delete') ?>" onsubmit="return confirm('Delete this question? This cannot be undone.');"><button class="delete-btn" type="submit">Delete</button></form></div></td>

@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Libraries\CredentialPdf;
+use App\Libraries\TypingAnswerPdf;
+use App\Services\TypingVerificationService;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Admin extends BaseController
@@ -320,6 +322,7 @@ class Admin extends BaseController
         $taskLabels = [
             'upload' => 'File upload',
             'written' => 'Written response',
+            'typing' => 'Typing test',
             'single' => 'Objective questions',
             'multi' => 'Objective questions',
             'bool' => 'Objective questions',
@@ -734,15 +737,19 @@ class Admin extends BaseController
             'exam_id' => (int) $this->request->getPost('exam_id'),
             'type' => (string) $this->request->getPost('type'),
             'prompt' => trim((string) $this->request->getPost('prompt')),
+            'typing_answer' => (string) $this->request->getPost('typing_answer'),
             'hint' => trim((string) $this->request->getPost('hint')),
             'points' => max(1, (int) $this->request->getPost('points')),
             'options' => $this->request->getPost('options'),
             'allowed_file_types' => $this->normaliseAllowedFileTypes($this->request->getPost('allowed_file_types'), (string) $this->request->getPost('type')),
         ];
 
-        $validTypes = ['single', 'multi', 'bool', 'written', 'upload'];
+        $validTypes = ['single', 'multi', 'bool', 'written', 'typing', 'upload'];
         if (! in_array($data['type'], $validTypes, true) || $data['prompt'] === '') {
             return view('admin/question_form', ['error' => 'Choose a valid type and enter a question prompt.', 'data' => $data, 'exams' => $exams]);
+        }
+        if ($data['type'] === 'typing' && trim($data['typing_answer']) === '') {
+            return view('admin/question_form', ['error' => 'Enter the reference text for this typing test.', 'data' => $data, 'exams' => $exams]);
         }
 
         $options = null;
@@ -778,6 +785,7 @@ class Admin extends BaseController
             'type' => $data['type'],
             'allowed_file_types' => $data['type'] === 'upload' ? json_encode($data['allowed_file_types']) : null,
             'prompt' => $data['prompt'],
+            'typing_answer' => $data['type'] === 'typing' ? $data['typing_answer'] : null,
             'hint' => $data['hint'] ?: null,
             'points' => $data['points'],
             'options' => $options ? json_encode($options) : null,
@@ -827,7 +835,7 @@ class Admin extends BaseController
 
         $examId = $examId ?: (int) $this->request->getGet('exam_id');
         $exams = db_connect()->table('exams')->orderBy('id', 'DESC')->get()->getResultArray();
-        return view('admin/question_form', ['error' => null, 'data' => ['exam_id' => $examId, 'allowed_file_types' => ['pdf']], 'exams' => $exams]);
+        return view('admin/question_form', ['error' => null, 'data' => ['exam_id' => $examId, 'allowed_file_types' => ['pdf'], 'typing_answer' => ''], 'exams' => $exams]);
     }
 
     public function editQuestion(int $id): string|ResponseInterface
@@ -853,6 +861,7 @@ class Admin extends BaseController
                 'type' => $question['type'],
                 'allowed_file_types' => $allowedFileTypes,
                 'prompt' => $question['prompt'],
+                'typing_answer' => $question['typing_answer'] ?? '',
                 'hint' => $question['hint'],
                 'points' => $question['points'],
                 'options' => $optionText,
@@ -884,6 +893,7 @@ class Admin extends BaseController
             'exam_id' => (int) $this->request->getPost('exam_id'),
             'type' => (string) $this->request->getPost('type'),
             'prompt' => trim((string) $this->request->getPost('prompt')),
+            'typing_answer' => (string) $this->request->getPost('typing_answer'),
             'hint' => trim((string) $this->request->getPost('hint')),
             'points' => max(1, (int) $this->request->getPost('points')),
             'options' => (string) $this->request->getPost('options'),
@@ -900,9 +910,13 @@ class Admin extends BaseController
             'submitLabel' => 'Save question',
         ];
 
-        $validTypes = ['single', 'multi', 'bool', 'written', 'upload'];
+        $validTypes = ['single', 'multi', 'bool', 'written', 'typing', 'upload'];
         if (! in_array($data['type'], $validTypes, true) || $data['prompt'] === '') {
             $formData['error'] = 'Choose a valid type and enter a question prompt.';
+            return view('admin/question_form', $formData);
+        }
+        if ($data['type'] === 'typing' && trim($data['typing_answer']) === '') {
+            $formData['error'] = 'Enter the reference text for this typing test.';
             return view('admin/question_form', $formData);
         }
 
@@ -943,6 +957,7 @@ class Admin extends BaseController
             'type' => $data['type'],
             'allowed_file_types' => $data['type'] === 'upload' ? json_encode($data['allowed_file_types']) : null,
             'prompt' => $data['prompt'],
+            'typing_answer' => $data['type'] === 'typing' ? $data['typing_answer'] : null,
             'hint' => $data['hint'] ?: null,
             'points' => $data['points'],
             'options' => $options ? json_encode($options) : null,
@@ -1562,6 +1577,10 @@ class Admin extends BaseController
         $questions = $db->table('questions')
             ->where(['exam_id' => $submission['exam_id'], 'is_active' => 1])
             ->orderBy('id', 'ASC')->get()->getResultArray();
+        $verificationByQuestion = [];
+        foreach ($db->table('submission_question_marks')->where('submission_id', $id)->get()->getResultArray() as $verification) {
+            $verificationByQuestion[(int) $verification['question_id']] = $verification;
+        }
         $marks = [];
         $score = 0.0;
         $maxScore = 0.0;
@@ -1597,6 +1616,8 @@ class Admin extends BaseController
                     'submission_id' => $id,
                     'question_id' => $questionId,
                     'marks' => $value,
+                    'similarity_percent' => $verificationByQuestion[$questionId]['similarity_percent'] ?? null,
+                    'verification_status' => $verificationByQuestion[$questionId]['verification_status'] ?? null,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -1659,8 +1680,15 @@ class Admin extends BaseController
         unset($question);
 
         $savedMarks = [];
+        $savedVerification = [];
         foreach ($db->table('submission_question_marks')->where('submission_id', $id)->get()->getResultArray() as $mark) {
             $savedMarks[(int) $mark['question_id']] = (float) $mark['marks'];
+            if ($mark['similarity_percent'] !== null || $mark['verification_status'] !== null) {
+                $savedVerification[(int) $mark['question_id']] = [
+                    'similarity' => (float) ($mark['similarity_percent'] ?? 0),
+                    'status' => $mark['verification_status'] ?: 'Not evaluated',
+                ];
+            }
         }
         $postedMarks = session()->getFlashdata('mark_values');
         $postedMarks = is_array($postedMarks) ? $postedMarks : [];
@@ -1669,6 +1697,12 @@ class Admin extends BaseController
             $question['obtain_mark'] = array_key_exists((string) $questionId, $postedMarks)
                 ? $postedMarks[(string) $questionId]
                 : ($savedMarks[$questionId] ?? '');
+            if ($question['type'] === 'typing') {
+                $answer = is_scalar($question['answer'] ?? null) ? (string) $question['answer'] : '';
+                $evaluation = $savedVerification[$questionId] ?? TypingVerificationService::evaluate((string) ($question['typing_answer'] ?? ''), $answer);
+                $question['similarity_percent'] = (float) ($evaluation['similarity'] ?? 0);
+                $question['verification_status'] = (string) ($evaluation['status'] ?? 'Not evaluated');
+            }
         }
         unset($question);
 
@@ -1739,5 +1773,44 @@ class Admin extends BaseController
         }
 
         return $this->response->download($filePath, null)->setFileName($downloadName);
+    }
+
+    public function typingAnswerPdf(int $submissionId, int $questionId): ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $db = db_connect();
+        $submission = $db->table('submissions')->where('id', $submissionId)->get()->getRowArray();
+        $question = $submission
+            ? $db->table('questions')->where(['id' => $questionId, 'exam_id' => $submission['exam_id'], 'type' => 'typing'])->get()->getRowArray()
+            : null;
+        if (! $submission || ! $question) {
+            return $this->response->setStatusCode(404)->setBody('Typing answer not found.');
+        }
+
+        $answers = $submission['answers'] ? (json_decode($submission['answers'], true) ?: []) : [];
+        $answer = $answers['q' . $questionId] ?? '';
+        $answer = is_scalar($answer) ? (string) $answer : '';
+        $mark = $db->table('submission_question_marks')
+            ->where(['submission_id' => $submissionId, 'question_id' => $questionId])
+            ->get()->getRowArray();
+        $evaluation = $mark && ($mark['similarity_percent'] !== null || $mark['verification_status'] !== null)
+            ? ['similarity' => (float) ($mark['similarity_percent'] ?? 0), 'status' => $mark['verification_status'] ?: 'Not evaluated']
+            : TypingVerificationService::evaluate((string) ($question['typing_answer'] ?? ''), $answer);
+        $pdf = TypingAnswerPdf::make([
+            'answer' => $answer,
+            'submissionId' => $submissionId,
+            'questionNumber' => 'Q' . $questionId,
+            'similarity' => rtrim(rtrim(number_format((float) $evaluation['similarity'], 2, '.', ''), '0'), '.'),
+            'status' => $evaluation['status'],
+        ]);
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'attachment; filename="typing-answer-submission-' . $submissionId . '-question-' . $questionId . '.pdf"')
+            ->setHeader('Content-Length', (string) strlen($pdf))
+            ->setBody($pdf);
     }
 }

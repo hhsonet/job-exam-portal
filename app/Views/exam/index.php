@@ -158,9 +158,10 @@
           </div>
 
           <div id="writtenBlock" class="hidden">
+            <div id="typingVerificationNote" class="hidden" style="margin-bottom:12px;padding:12px 14px;border:1px solid #BFE0CE;background:#F1FBF5;color:#176A45;font-size:13px;line-height:1.5;">This typing test is verified automatically when you submit.</div>
             <textarea id="textAnswer" placeholder="Type your answer here." aria-label="Written answer" style="width: 100%; min-height: 220px; resize: vertical; padding: 18px 20px; font-family: 'Public Sans', sans-serif; font-size: 17px; line-height: 1.6; color: var(--navy); border: 1px solid var(--border-input); border-radius: 10px; background: #FFFFFF;"></textarea>
             <div style="display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; font-size: 13px; color: var(--ink-faint);">
-              <span>Suggested length: 80–150 words. Plain text only.</span>
+              <span id="writtenGuidance">Suggested length: 80–150 words. Plain text only.</span>
               <span id="wordCount" class="mono">0 words</span>
             </div>
           </div>
@@ -649,7 +650,7 @@ function render() {
   el("progressBar").style.width = pct + "%";
 
   el("questionCounter").textContent = "Question " + (state.index + 1) + " of " + QUESTIONS.length;
-  el("typeLabel").textContent = q.type === "single" ? "Multiple choice — one answer" : q.type === "multi" ? "Multiple choice — select all that apply" : q.type === "bool" ? "True or false" : q.type === "upload" ? "File upload — " + allowedFileLabel(q) : "Written answer";
+  el("typeLabel").textContent = q.type === "single" ? "Multiple choice — one answer" : q.type === "multi" ? "Multiple choice — select all that apply" : q.type === "bool" ? "True or false" : q.type === "upload" ? "File upload — " + allowedFileLabel(q) : q.type === "typing" ? "Typing test — system verified" : "Written answer";
   el("pointsLabel").textContent = q.points + (q.points === 1 ? " point" : " points");
   el("promptText").textContent = q.prompt;
   el("hintText").textContent = q.hint;
@@ -691,9 +692,11 @@ function render() {
     attachmentInfo.appendChild(attachmentTable);
   }
 
-  const isChoice = q.type !== "written" && q.type !== "upload";
+  const isChoice = q.type !== "written" && q.type !== "typing" && q.type !== "upload";
   el("choiceBlock").classList.toggle("hidden", !isChoice);
-  el("writtenBlock").classList.toggle("hidden", q.type !== "written");
+  el("writtenBlock").classList.toggle("hidden", q.type !== "written" && q.type !== "typing");
+  el("typingVerificationNote").classList.toggle("hidden", q.type !== "typing");
+  el("writtenGuidance").textContent = q.type === "typing" ? "Type the requested text exactly. Plain text only." : "Suggested length: 80–150 words. Plain text only.";
   el("uploadBlock").classList.toggle("hidden", q.type !== "upload");
 
   if (isChoice) {
@@ -711,7 +714,7 @@ function render() {
     });
   }
 
-  if (q.type === "written") {
+  if (q.type === "written" || q.type === "typing") {
     const v = typeof state.answers[q.id] === "string" ? state.answers[q.id] : "";
     if (el("textAnswer").value !== v) el("textAnswer").value = v;
     const words = v.trim().split(/\s+/).filter(Boolean).length;

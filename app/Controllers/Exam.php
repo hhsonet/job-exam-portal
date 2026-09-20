@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\TypingVerificationService;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Exam extends BaseController
@@ -681,6 +682,33 @@ class Exam extends BaseController
         ];
 
         $db = db_connect();
+        $autoMarkQuestions = $db->table('questions')
+            ->select('id, type, points, typing_answer')
+            ->where(['exam_id' => $examId, 'is_active' => 1])
+            ->orderBy('id', 'ASC')->get()->getResultArray();
+        $automaticMarks = [];
+        $automaticVerification = [];
+        $automaticScore = 0.0;
+        $automaticMaxScore = 0.0;
+        foreach ($autoMarkQuestions as $question) {
+            $automaticMaxScore += (float) $question['points'];
+            if ($question['type'] !== 'typing') {
+                continue;
+            }
+
+            $answer = $answers['q' . $question['id']] ?? '';
+            $answer = is_scalar($answer) ? (string) $answer : '';
+            $evaluation = TypingVerificationService::evaluate((string) $question['typing_answer'], $answer);
+            $mark = $evaluation['is_correct'] ? (float) $question['points'] : 0.0;
+            $automaticScore += $mark;
+            $automaticMarks[(int) $question['id']] = $mark;
+            $automaticVerification[(int) $question['id']] = $evaluation;
+        }
+        if ($automaticMarks) {
+            $submissionData['score'] = $automaticScore;
+            $submissionData['max_score'] = $automaticMaxScore;
+        }
+
         $action = $existing ? 'RESUBMIT' : 'FINAL_SUBMIT';
         $version = (int) $db->table('submission_logs')
             ->where(['exam_id' => $examId, 'applicant_id' => $applicant['applicant_code']])
@@ -715,6 +743,22 @@ class Exam extends BaseController
             }
             if (! $submissionId) {
                 throw new \RuntimeException('Submission record could not be created.');
+            }
+            $db->table('submission_question_marks')->where('submission_id', $submissionId)->delete();
+            if ($automaticMarks) {
+                $db->table('submission_question_marks')->insertBatch(array_map(
+                    static fn (int $questionId, float $mark): array => [
+                        'submission_id' => $submissionId,
+                        'question_id' => $questionId,
+                        'marks' => $mark,
+                        'similarity_percent' => $automaticVerification[$questionId]['similarity'],
+                        'verification_status' => $automaticVerification[$questionId]['status'],
+                        'created_at' => $submittedAtDb,
+                        'updated_at' => $submittedAtDb,
+                    ],
+                    array_keys($automaticMarks),
+                    array_values($automaticMarks)
+                ));
             }
             $db->table('exam_attempts')
                 ->where(['exam_id' => $examId, 'applicant_id' => $applicant['applicant_code']])

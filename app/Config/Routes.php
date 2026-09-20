@@ -38,6 +38,7 @@ $routes->get('admin/submissions/export', 'Admin::exportSubmissionMarks');
 $routes->post('admin/submissions/delete-all', 'Admin::deleteAllSubmissions');
 $routes->get('admin/submissions/(:num)', 'Admin::submissionDetail/$1');
 $routes->get('admin/submissions/(:num)/question/(:num)/file', 'Admin::submissionFile/$1/$2');
+$routes->get('admin/submissions/(:num)/question/(:num)/typing-pdf', 'Admin::typingAnswerPdf/$1/$2');
 $routes->post('admin/submissions/(:num)/mark', 'Admin::markSubmission/$1');
 $routes->get('admin/audit-logs', 'Admin::auditLogs');
 $routes->get('admin/login-history', 'Admin::loginHistory');
