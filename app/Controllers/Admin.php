@@ -479,6 +479,10 @@ class Admin extends BaseController
         }
 
         $db = db_connect();
+        $exam = $db->table('exams')->where('id', $id)->get()->getRowArray();
+        if (! $exam) {
+            return redirect()->to('/admin/exams?error=' . rawurlencode('Exam not found.'));
+        }
         if ($db->table('submissions')->where('exam_id', $id)->countAllResults() > 0) {
             return redirect()->to('/admin/exams?error=' . rawurlencode('This exam cannot be deleted because it has submissions.'));
         }
