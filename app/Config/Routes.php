@@ -59,6 +59,7 @@ $routes->get('admin/exams/create', 'Admin::newExam');
 $routes->get('admin/exams/(:num)/edit', 'Admin::editExam/$1');
 $routes->get('admin/exams/(:num)/monitor', 'Admin::examMonitor/$1');
 $routes->get('admin/exams/(:num)/monitor/data', 'Admin::examMonitorData/$1');
+$routes->post('admin/exams/(:num)/monitor/force-submit', 'Admin::forceSubmitUnsubmitted/$1');
 $routes->post('admin/exams', 'Admin::createExam');
 $routes->post('admin/exams/create', 'Admin::createExam');
 $routes->post('admin/exams/(:num)/update', 'Admin::updateExam/$1');

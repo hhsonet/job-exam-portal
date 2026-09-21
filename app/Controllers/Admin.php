@@ -185,7 +185,11 @@ class Admin extends BaseController
             return redirect()->to('/admin/exams?error=' . rawurlencode('Exam not found.'));
         }
 
-        return view('admin/exam_monitor', ['monitorData' => $monitorData]);
+        return view('admin/exam_monitor', [
+            'monitorData' => $monitorData,
+            'success' => $this->request->getGet('success'),
+            'error' => $this->request->getGet('error'),
+        ]);
     }
 
     public function examMonitorData(int $id): ResponseInterface
@@ -200,6 +204,176 @@ class Admin extends BaseController
         }
 
         return $this->response->setJSON($monitorData);
+    }
+
+    public function forceSubmitUnsubmitted(int $id): ResponseInterface
+    {
+        if ($redirect = $this->requireAdmin()) {
+            return $redirect;
+        }
+
+        $db = db_connect();
+        $exam = $db->table('exams')->where('id', $id)->get()->getRowArray();
+        if (! $exam) {
+            return redirect()->to('/admin/exams?error=' . rawurlencode('Exam not found.'));
+        }
+
+        $questions = $db->table('questions')
+            ->select('id, type, points, prompt, typing_answer')
+            ->where(['exam_id' => $id, 'is_active' => 1])
+            ->orderBy('id', 'ASC')->get()->getResultArray();
+        if (! $questions) {
+            return redirect()->to(site_url('admin/exams/' . $id . '/monitor?error=' . rawurlencode('This exam has no active questions.')));
+        }
+
+        $attempts = $db->query(
+            "SELECT a.*, u.id AS user_id
+             FROM exam_attempts a
+             LEFT JOIN users u ON u.applicant_code = a.applicant_id AND u.usertype = 'applicant'
+             WHERE a.exam_id = ?
+               AND NOT EXISTS (
+                   SELECT 1 FROM submissions s
+                   WHERE s.exam_id = a.exam_id AND s.applicant_id = a.applicant_id
+               )
+             ORDER BY a.id ASC",
+            [$id]
+        )->getResultArray();
+        if (! $attempts) {
+            return redirect()->to(site_url('admin/exams/' . $id . '/monitor?success=' . rawurlencode('There are no unsubmitted attempts to force-submit.')));
+        }
+
+        $nowTimestamp = time();
+        $submittedAt = date('Y-m-d H:i:s', $nowTimestamp);
+        $audit = new \App\Services\AuditLogService();
+        $created = 0;
+
+        try {
+            $db->transBegin();
+            foreach ($attempts as $attempt) {
+                $existing = $db->table('submissions')
+                    ->where(['exam_id' => $id, 'applicant_id' => $attempt['applicant_id']])
+                    ->orderBy('id', 'DESC')->get()->getRowArray();
+                if ($existing) {
+                    continue;
+                }
+
+                $answers = $attempt['answers'] ? (json_decode($attempt['answers'], true) ?: []) : [];
+                $marked = $attempt['marked'] ? (json_decode($attempt['marked'], true) ?: []) : [];
+                $answers = is_array($answers) ? $answers : [];
+                $marked = is_array($marked) ? $marked : [];
+                $answeredCount = count(array_filter($answers, static function ($value): bool {
+                    if (is_array($value)) {
+                        return isset($value['file']) || count($value) > 0;
+                    }
+                    return trim((string) $value) !== '';
+                }));
+                $startTimestamp = strtotime((string) $attempt['started_at']);
+                $deadline = $startTimestamp + (int) $exam['duration_seconds'];
+                if ($exam['end_at']) {
+                    $deadline = min($deadline, strtotime($exam['end_at']));
+                }
+                $timeUsed = max(0, min((int) $exam['duration_seconds'], min($nowTimestamp, $deadline) - $startTimestamp));
+
+                $automaticMarks = [];
+                $automaticScore = 0.0;
+                foreach ($questions as $question) {
+                    if ($question['type'] !== 'typing') {
+                        continue;
+                    }
+                    $answer = $answers['q' . $question['id']] ?? '';
+                    $answer = is_scalar($answer) ? (string) $answer : '';
+                    $evaluation = TypingVerificationService::evaluate((string) $question['typing_answer'], $answer);
+                    $mark = $evaluation['is_correct'] ? (float) $question['points'] : 0.0;
+                    $automaticScore += $mark;
+                    $automaticMarks[(int) $question['id']] = ['mark' => $mark, 'evaluation' => $evaluation];
+                }
+                $maxScore = array_sum(array_map(static fn (array $question): float => (float) $question['points'], $questions));
+                $reference = 'NV-TS-' . strtoupper(bin2hex(random_bytes(2))) . '-' . strtoupper(bin2hex(random_bytes(2)));
+                $version = (int) $db->table('submission_logs')->where(['exam_id' => $id, 'applicant_id' => $attempt['applicant_id']])->countAllResults() + 1;
+                $snapshotHash = hash('sha256', json_encode([
+                    'exam_id' => $id,
+                    'version' => $version,
+                    'questions' => array_map(static fn (array $question): array => ['id' => $question['id'], 'type' => $question['type'], 'points' => $question['points'], 'prompt' => $question['prompt']], $questions),
+                    'answers' => $answers,
+                    'answered_count' => $answeredCount,
+                    'time_used' => $timeUsed,
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+                $submissionData = [
+                    'exam_id' => $id,
+                    'reference' => $reference,
+                    'applicant_id' => $attempt['applicant_id'],
+                    'answered_count' => $answeredCount,
+                    'total_count' => count($questions),
+                    'marked_count' => count($marked),
+                    'time_used' => $timeUsed,
+                    'answers' => json_encode($answers),
+                    'status' => 'submitted',
+                    'submitted_at' => $submittedAt,
+                    'updated_at' => $submittedAt,
+                    'created_at' => $submittedAt,
+                    'score' => $automaticMarks ? $automaticScore : null,
+                    'max_score' => $automaticMarks ? $maxScore : null,
+                ];
+                $db->table('submissions')->insert($submissionData);
+                $submissionId = (int) $db->insertID();
+                if (! $submissionId) {
+                    throw new \RuntimeException('A forced submission could not be created.');
+                }
+                if ($automaticMarks) {
+                    $db->table('submission_question_marks')->insertBatch(array_map(
+                        static fn (int $questionId, array $result): array => [
+                            'submission_id' => $submissionId,
+                            'question_id' => $questionId,
+                            'marks' => $result['mark'],
+                            'similarity_percent' => $result['evaluation']['similarity'],
+                            'verification_status' => $result['evaluation']['status'],
+                            'created_at' => $submittedAt,
+                            'updated_at' => $submittedAt,
+                        ],
+                        array_keys($automaticMarks),
+                        array_values($automaticMarks)
+                    ));
+                }
+                $audit->logSubmission([
+                    'submission_id' => $submissionId,
+                    'exam_id' => $id,
+                    'application_reference' => $reference,
+                    'application_version' => $version,
+                    'user_id' => $attempt['user_id'] ? (int) $attempt['user_id'] : null,
+                    'applicant_id' => $attempt['applicant_id'],
+                    'action' => 'ADMIN_FORCE_SUBMIT',
+                    'new_status' => 'submitted',
+                    'submitted_at' => $submittedAt,
+                    'deadline_at' => date('Y-m-d H:i:s', $deadline),
+                    'snapshot_hash' => $snapshotHash,
+                    'remarks' => 'Force-submitted by administrator.',
+                ], true, $db);
+                $audit->log('ADMIN_FORCE_SUBMIT', (int) session()->get('admin_id'), [
+                    'actorType' => 'admin',
+                    'entityType' => 'submission',
+                    'entityId' => (string) $submissionId,
+                    'description' => 'Administrator force-submitted an unsubmitted attempt.',
+                    'metadata' => ['exam_id' => $id, 'applicant_id' => $attempt['applicant_id']],
+                ], true, $db);
+                $created++;
+            }
+            if (! $db->transStatus()) {
+                throw new \RuntimeException('The force-submit transaction failed.');
+            }
+            $db->transCommit();
+        } catch (\Throwable $exception) {
+            $db->transRollback();
+            log_message('error', 'Force-submit failed: {message}', ['message' => $exception->getMessage()]);
+            return redirect()->to(site_url('admin/exams/' . $id . '/monitor?error=' . rawurlencode('The unsubmitted attempts could not be force-submitted.')));
+        }
+
+        $this->auditAdmin('ADMIN_FORCE_SUBMIT_BATCH', 'exam', $id, [
+            'description' => 'Administrator force-submitted unsubmitted attempts.',
+            'metadata' => ['count' => $created],
+        ]);
+
+        return redirect()->to(site_url('admin/exams/' . $id . '/monitor?success=' . rawurlencode($created . ' unsubmitted attempt(s) force-submitted.')));
     }
 
     private function buildExamMonitorData(int $examId): ?array

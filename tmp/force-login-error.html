@@ -1,0 +1,1411 @@
+{
+    "title": "CodeIgniter\\Database\\Exceptions\\DatabaseException",
+    "type": "CodeIgniter\\Database\\Exceptions\\DatabaseException",
+    "code": 500,
+    "message": "Unable to connect to the database.\r\nMain connection [MySQLi]: No connection could be made because the target machine actively refused it",
+    "file": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\BaseConnection.php",
+    "line": 606,
+    "trace": [
+        {
+            "file": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\BaseConnection.php",
+            "line": 795,
+            "function": "initialize",
+            "class": "CodeIgniter\\Database\\BaseConnection",
+            "type": "->",
+            "args": []
+        },
+        {
+            "file": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\BaseBuilder.php",
+            "line": 1659,
+            "function": "query",
+            "class": "CodeIgniter\\Database\\BaseConnection",
+            "type": "->",
+            "args": [
+                "SELECT *\nFROM `users`\nWHERE `username` = :username:\nAND `usertype` IN :usertype:",
+                {
+                    "username": [
+                        "sonet",
+                        true
+                    ],
+                    "usertype": [
+                        [
+                            "SuperAdmin",
+                            "admin"
+                        ],
+                        true
+                    ]
+                },
+                false
+            ]
+        },
+        {
+            "file": "C:\\xampp\\htdocs\\exam\\app\\Controllers\\Admin.php",
+            "line": 46,
+            "function": "get",
+            "class": "CodeIgniter\\Database\\BaseBuilder",
+            "type": "->",
+            "args": []
+        },
+        {
+            "file": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php",
+            "line": 974,
+            "function": "login",
+            "class": "App\\Controllers\\Admin",
+            "type": "->",
+            "args": []
+        },
+        {
+            "file": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php",
+            "line": 520,
+            "function": "runController",
+            "class": "CodeIgniter\\CodeIgniter",
+            "type": "->",
+            "args": [
+                {
+                    "helpers": [],
+                    "request": {
+                        "protocolVersion": "1.1",
+                        "validProtocolVersions": [
+                            "1.0",
+                            "1.1",
+                            "2.0",
+                            "3.0"
+                        ],
+                        "body": "username=sonet&password=Mango%40000",
+                        "headers": {
+                            "Content-Type": {
+                                "name": "Content-Type",
+                                "value": "application/x-www-form-urlencoded"
+                            },
+                            "Host": {
+                                "name": "Host",
+                                "value": "localhost"
+                            },
+                            "User-Agent": {
+                                "name": "User-Agent",
+                                "value": "curl/8.21.0"
+                            },
+                            "Accept": {
+                                "name": "Accept",
+                                "value": "*/*"
+                            }
+                        },
+                        "headerMap": {
+                            "content-type": "Content-Type",
+                            "host": "Host",
+                            "user-agent": "User-Agent",
+                            "accept": "Accept"
+                        },
+                        "method": "POST",
+                        "uri": {
+                            "uriString": null,
+                            "baseURL": {
+                                "uriString": null,
+                                "baseURL": null,
+                                "segments": [
+                                    "exam",
+                                    "public"
+                                ],
+                                "scheme": "http",
+                                "user": null,
+                                "password": null,
+                                "host": "localhost",
+                                "port": null,
+                                "path": "/exam/public/",
+                                "fragment": "",
+                                "query": [],
+                                "defaultPorts": {
+                                    "http": 80,
+                                    "https": 443,
+                                    "ftp": 21,
+                                    "sftp": 22
+                                },
+                                "showPassword": false,
+                                "silent": false,
+                                "rawQueryString": false
+                            },
+                            "segments": [
+                                "admin",
+                                "login"
+                            ],
+                            "scheme": "http",
+                            "user": null,
+                            "password": null,
+                            "host": "localhost",
+                            "port": null,
+                            "path": "/exam/public/admin/login",
+                            "fragment": "",
+                            "query": [],
+                            "defaultPorts": {
+                                "http": 80,
+                                "https": 443,
+                                "ftp": 21,
+                                "sftp": 22
+                            },
+                            "showPassword": false,
+                            "silent": false,
+                            "rawQueryString": false,
+                            "basePathWithoutIndexPage": "/exam/public/",
+                            "indexPage": "",
+                            "baseSegments": [
+                                "exam",
+                                "public"
+                            ],
+                            "routePath": "admin/login"
+                        },
+                        "config": {
+                            "baseURL": "http://localhost/exam/public/",
+                            "allowedHostnames": [],
+                            "indexPage": "",
+                            "uriProtocol": "REQUEST_URI",
+                            "permittedURIChars": "a-z 0-9~%.:_\\-",
+                            "defaultLocale": "en",
+                            "negotiateLocale": false,
+                            "supportedLocales": [
+                                "en"
+                            ],
+                            "appTimezone": "Asia/Dhaka",
+                            "charset": "UTF-8",
+                            "forceGlobalSecureRequests": false,
+                            "proxyIPs": [],
+                            "CSPEnabled": false
+                        },
+                        "ipAddress": "",
+                        "globals": {
+                            "server": {
+                                "REDIRECT_MIBDIRS": "/xampp/php/extras/mibs",
+                                "REDIRECT_MYSQL_HOME": "\\xampp\\mysql\\bin",
+                                "REDIRECT_OPENSSL_CONF": "/xampp/apache/bin/openssl.cnf",
+                                "REDIRECT_PHP_PEAR_SYSCONF_DIR": "\\xampp\\php",
+                                "REDIRECT_PHPRC": "\\xampp\\php",
+                                "REDIRECT_TMP": "\\xampp\\tmp",
+                                "REDIRECT_STATUS": "200",
+                                "MIBDIRS": "/xampp/php/extras/mibs",
+                                "MYSQL_HOME": "\\xampp\\mysql\\bin",
+                                "OPENSSL_CONF": "/xampp/apache/bin/openssl.cnf",
+                                "PHP_PEAR_SYSCONF_DIR": "\\xampp\\php",
+                                "PHPRC": "\\xampp\\php",
+                                "TMP": "\\xampp\\tmp",
+                                "HTTP_HOST": "localhost",
+                                "HTTP_USER_AGENT": "curl/8.21.0",
+                                "HTTP_ACCEPT": "*/*",
+                                "CONTENT_LENGTH": "35",
+                                "CONTENT_TYPE": "application/x-www-form-urlencoded",
+                                "PATH": "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin;C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.12.101-hotspot\\bin;C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.20.101-hotspot\\bin;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files\\Git\\cmd;C:\\Program Files\\Puku Editor\\bin;C:\\Strawberry\\c\\bin;C:\\Strawberry\\perl\\site\\bin;C:\\Strawberry\\perl\\bin;C:\\nodejs\\node-v20.18.0-win-x64;C:\\Users\\Hasan Sonet\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\Hasan Sonet\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;%USERPROFILE%\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.20.101-hotspot\\bin;C:\\src\\flutter\\bin;C:\\Android\\Sdk\\platform-tools;C:\\Android\\Sdk\\cmdline-tools\\latest\\bin;C:\\Users\\Hasan Sonet\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\",
+                                "SystemRoot": "C:\\WINDOWS",
+                                "COMSPEC": "C:\\WINDOWS\\system32\\cmd.exe",
+                                "PATHEXT": ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC",
+                                "WINDIR": "C:\\WINDOWS",
+                                "SERVER_SIGNATURE": "",
+                                "SERVER_SOFTWARE": "Apache/2.4.58 (Win64) OpenSSL/3.1.3 PHP/8.2.12",
+                                "SERVER_NAME": "localhost",
+                                "SERVER_ADDR": "::1",
+                                "SERVER_PORT": "80",
+                                "REMOTE_ADDR": "::1",
+                                "DOCUMENT_ROOT": "C:/xampp/htdocs",
+                                "REQUEST_SCHEME": "http",
+                                "CONTEXT_PREFIX": "",
+                                "CONTEXT_DOCUMENT_ROOT": "C:/xampp/htdocs",
+                                "SERVER_ADMIN": "postmaster@localhost",
+                                "SCRIPT_FILENAME": "C:/xampp/htdocs/exam/public/index.php",
+                                "REMOTE_PORT": "55297",
+                                "REDIRECT_URL": "/exam/public/admin/login",
+                                "GATEWAY_INTERFACE": "CGI/1.1",
+                                "SERVER_PROTOCOL": "HTTP/1.1",
+                                "REQUEST_METHOD": "POST",
+                                "QUERY_STRING": "",
+                                "REQUEST_URI": "/exam/public/admin/login",
+                                "SCRIPT_NAME": "/exam/public/index.php",
+                                "PATH_INFO": "/admin/login",
+                                "PATH_TRANSLATED": "C:\\xampp\\htdocs\\admin\\login",
+                                "PHP_SELF": "/exam/public/index.php/admin/login",
+                                "REQUEST_TIME_FLOAT": 1789973898.607325,
+                                "REQUEST_TIME": 1789973898,
+                                "CI_ENVIRONMENT": "development",
+                                "app.baseURL": "http://localhost/exam/public/",
+                                "database.default.hostname": "localhost",
+                                "database.default.database": "exam-nova-db",
+                                "database.default.username": "sonet",
+                                "database.default.password": "Mango@000",
+                                "database.default.DBDriver": "MySQLi",
+                                "database.default.DBPrefix": "",
+                                "database.default.port": "3306",
+                                "encryption.key": "hex2bin:cd2763a4f0d7789797a635ce8131ebc311b1aa85b816d000d7934c8368a458c1",
+                                "admin.username": "sonet",
+                                "admin.password": "Mango@000"
+                            },
+                            "post": {
+                                "username": "sonet",
+                                "password": "Mango@000"
+                            },
+                            "get": []
+                        },
+                        "path": "admin/login",
+                        "files": null,
+                        "negotiator": null,
+                        "defaultLocale": "en",
+                        "locale": "en",
+                        "validLocales": [
+                            "en"
+                        ],
+                        "oldInput": [],
+                        "userAgent": {
+                            "agent": "curl/8.21.0",
+                            "isBrowser": false,
+                            "isRobot": false,
+                            "isMobile": false,
+                            "config": {
+                                "platforms": {
+                                    "windows nt 10.0": "Windows 10",
+                                    "windows nt 6.3": "Windows 8.1",
+                                    "windows nt 6.2": "Windows 8",
+                                    "windows nt 6.1": "Windows 7",
+                                    "windows nt 6.0": "Windows Vista",
+                                    "windows nt 5.2": "Windows 2003",
+                                    "windows nt 5.1": "Windows XP",
+                                    "windows nt 5.0": "Windows 2000",
+                                    "windows nt 4.0": "Windows NT 4.0",
+                                    "winnt4.0": "Windows NT 4.0",
+                                    "winnt 4.0": "Windows NT",
+                                    "winnt": "Windows NT",
+                                    "windows 98": "Windows 98",
+                                    "win98": "Windows 98",
+                                    "windows 95": "Windows 95",
+                                    "win95": "Windows 95",
+                                    "windows phone": "Windows Phone",
+                                    "windows": "Unknown Windows OS",
+                                    "android": "Android",
+                                    "blackberry": "BlackBerry",
+                                    "iphone": "iOS",
+                                    "ipad": "iOS",
+                                    "ipod": "iOS",
+                                    "os x": "Mac OS X",
+                                    "ppc mac": "Power PC Mac",
+                                    "freebsd": "FreeBSD",
+                                    "ppc": "Macintosh",
+                                    "linux": "Linux",
+                                    "debian": "Debian",
+                                    "sunos": "Sun Solaris",
+                                    "beos": "BeOS",
+                                    "apachebench": "ApacheBench",
+                                    "aix": "AIX",
+                                    "irix": "Irix",
+                                    "osf": "DEC OSF",
+                                    "hp-ux": "HP-UX",
+                                    "netbsd": "NetBSD",
+                                    "bsdi": "BSDi",
+                                    "openbsd": "OpenBSD",
+                                    "gnu": "GNU/Linux",
+                                    "unix": "Unknown Unix OS",
+                                    "symbian": "Symbian OS"
+                                },
+                                "browsers": {
+                                    "OPR": "Opera",
+                                    "Flock": "Flock",
+                                    "Edge": "Spartan",
+                                    "Edg": "Edge",
+                                    "Chrome": "Chrome",
+                                    "Opera.*?Version": "Opera",
+                                    "Opera": "Opera",
+                                    "MSIE": "Internet Explorer",
+                                    "Internet Explorer": "Internet Explorer",
+                                    "Trident.* rv": "Internet Explorer",
+                                    "Shiira": "Shiira",
+                                    "Firefox": "Firefox",
+                                    "Chimera": "Chimera",
+                                    "Phoenix": "Phoenix",
+                                    "Firebird": "Firebird",
+                                    "Camino": "Camino",
+                                    "Netscape": "Netscape",
+                                    "OmniWeb": "OmniWeb",
+                                    "Safari": "Safari",
+                                    "Mozilla": "Mozilla",
+                                    "Konqueror": "Konqueror",
+                                    "icab": "iCab",
+                                    "Lynx": "Lynx",
+                                    "Links": "Links",
+                                    "hotjava": "HotJava",
+                                    "amaya": "Amaya",
+                                    "IBrowse": "IBrowse",
+                                    "Maxthon": "Maxthon",
+                                    "Ubuntu": "Ubuntu Web Browser",
+                                    "Vivaldi": "Vivaldi"
+                                },
+                                "mobiles": {
+                                    "mobileexplorer": "Mobile Explorer",
+                                    "palmsource": "Palm",
+                                    "palmscape": "Palmscape",
+                                    "motorola": "Motorola",
+                                    "nokia": "Nokia",
+                                    "palm": "Palm",
+                                    "iphone": "Apple iPhone",
+                                    "ipad": "iPad",
+                                    "ipod": "Apple iPod Touch",
+                                    "sony": "Sony Ericsson",
+                                    "ericsson": "Sony Ericsson",
+                                    "blackberry": "BlackBerry",
+                                    "cocoon": "O2 Cocoon",
+                                    "blazer": "Treo",
+                                    "lg": "LG",
+                                    "amoi": "Amoi",
+                                    "xda": "XDA",
+                                    "mda": "MDA",
+                                    "vario": "Vario",
+                                    "htc": "HTC",
+                                    "samsung": "Samsung",
+                                    "sharp": "Sharp",
+                                    "sie-": "Siemens",
+                                    "alcatel": "Alcatel",
+                                    "benq": "BenQ",
+                                    "ipaq": "HP iPaq",
+                                    "mot-": "Motorola",
+                                    "playstation portable": "PlayStation Portable",
+                                    "playstation 3": "PlayStation 3",
+                                    "playstation vita": "PlayStation Vita",
+                                    "hiptop": "Danger Hiptop",
+                                    "nec-": "NEC",
+                                    "panasonic": "Panasonic",
+                                    "philips": "Philips",
+                                    "sagem": "Sagem",
+                                    "sanyo": "Sanyo",
+                                    "spv": "SPV",
+                                    "zte": "ZTE",
+                                    "sendo": "Sendo",
+                                    "nintendo dsi": "Nintendo DSi",
+                                    "nintendo ds": "Nintendo DS",
+                                    "nintendo 3ds": "Nintendo 3DS",
+                                    "wii": "Nintendo Wii",
+                                    "open web": "Open Web",
+                                    "openweb": "OpenWeb",
+                                    "android": "Android",
+                                    "symbian": "Symbian",
+                                    "SymbianOS": "SymbianOS",
+                                    "elaine": "Palm",
+                                    "series60": "Symbian S60",
+                                    "windows ce": "Windows CE",
+                                    "obigo": "Obigo",
+                                    "netfront": "Netfront Browser",
+                                    "openwave": "Openwave Browser",
+                                    "mobilexplorer": "Mobile Explorer",
+                                    "operamini": "Opera Mini",
+                                    "opera mini": "Opera Mini",
+                                    "opera mobi": "Opera Mobile",
+                                    "fennec": "Firefox Mobile",
+                                    "digital paths": "Digital Paths",
+                                    "avantgo": "AvantGo",
+                                    "xiino": "Xiino",
+                                    "novarra": "Novarra Transcoder",
+                                    "vodafone": "Vodafone",
+                                    "docomo": "NTT DoCoMo",
+                                    "o2": "O2",
+                                    "mobile": "Generic Mobile",
+                                    "wireless": "Generic Mobile",
+                                    "j2me": "Generic Mobile",
+                                    "midp": "Generic Mobile",
+                                    "cldc": "Generic Mobile",
+                                    "up.link": "Generic Mobile",
+                                    "up.browser": "Generic Mobile",
+                                    "smartphone": "Generic Mobile",
+                                    "cellphone": "Generic Mobile"
+                                },
+                                "robots": {
+                                    "googlebot": "Googlebot",
+                                    "google-pagerenderer": "Google Page Renderer",
+                                    "google-read-aloud": "Google Read Aloud",
+                                    "google-safety": "Google Safety Bot",
+                                    "msnbot": "MSNBot",
+                                    "baiduspider": "Baiduspider",
+                                    "bingbot": "Bing",
+                                    "bingpreview": "BingPreview",
+                                    "slurp": "Inktomi Slurp",
+                                    "yahoo": "Yahoo",
+                                    "ask jeeves": "Ask Jeeves",
+                                    "fastcrawler": "FastCrawler",
+                                    "infoseek": "InfoSeek Robot 1.0",
+                                    "lycos": "Lycos",
+                                    "yandex": "YandexBot",
+                                    "mediapartners-google": "MediaPartners Google",
+                                    "CRAZYWEBCRAWLER": "Crazy Webcrawler",
+                                    "adsbot-google": "AdsBot Google",
+                                    "feedfetcher-google": "Feedfetcher Google",
+                                    "curious george": "Curious George",
+                                    "ia_archiver": "Alexa Crawler",
+                                    "MJ12bot": "Majestic-12",
+                                    "Uptimebot": "Uptimebot",
+                                    "duckduckbot": "DuckDuckBot",
+                                    "sogou": "Sogou Spider",
+                                    "exabot": "Exabot",
+                                    "bot": "Generic Bot",
+                                    "crawler": "Generic Crawler",
+                                    "spider": "Generic Spider"
+                                }
+                            },
+                            "platform": "Unknown Platform",
+                            "browser": "",
+                            "version": "",
+                            "mobile": "",
+                            "robot": "",
+                            "referrer": null
+                        }
+                    },
+                    "response": {
+                        "protocolVersion": "1.1",
+                        "validProtocolVersions": [
+                            "1.0",
+                            "1.1",
+                            "2.0",
+                            "3.0"
+                        ],
+                        "body": null,
+                        "headers": {
+                            "Cache-Control": {
+                                "name": "Cache-Control",
+                                "value": [
+                                    "no-store",
+                                    "max-age=0",
+                                    "no-cache"
+                                ]
+                            },
+                            "Content-Type": {
+                                "name": "Content-Type",
+                                "value": "text/html; charset=UTF-8"
+                            }
+                        },
+                        "headerMap": {
+                            "cache-control": "Cache-Control",
+                            "content-type": "Content-Type"
+                        },
+                        "reason": "Internal Server Error",
+                        "statusCode": 500,
+                        "pretend": false,
+                        "CSP": {
+                            "directives": {
+                                "base-uri": "baseURI",
+                                "child-src": "childSrc",
+                                "connect-src": "connectSrc",
+                                "default-src": "defaultSrc",
+                                "font-src": "fontSrc",
+                                "form-action": "formAction",
+                                "frame-ancestors": "frameAncestors",
+                                "frame-src": "frameSrc",
+                                "img-src": "imageSrc",
+                                "media-src": "mediaSrc",
+                                "object-src": "objectSrc",
+                                "plugin-types": "pluginTypes",
+                                "script-src": "scriptSrc",
+                                "style-src": "styleSrc",
+                                "sandbox": "sandbox",
+                                "manifest-src": "manifestSrc",
+                                "script-src-elem": "scriptSrcElem",
+                                "script-src-attr": "scriptSrcAttr",
+                                "style-src-elem": "styleSrcElem",
+                                "style-src-attr": "styleSrcAttr",
+                                "worker-src": "workerSrc",
+                                "report-uri": "reportURI",
+                                "report-to": "reportTo"
+                            },
+                            "baseURI": null,
+                            "childSrc": "self",
+                            "connectSrc": "self",
+                            "defaultSrc": null,
+                            "fontSrc": null,
+                            "formAction": "self",
+                            "frameAncestors": null,
+                            "frameSrc": null,
+                            "imageSrc": "self",
+                            "mediaSrc": null,
+                            "objectSrc": "self",
+                            "pluginTypes": null,
+                            "scriptSrc": {
+                                "self": false
+                            },
+                            "styleSrc": {
+                                "self": false
+                            },
+                            "sandbox": null,
+                            "reportURI": null,
+                            "reportTo": null,
+                            "manifestSrc": null,
+                            "scriptSrcElem": "self",
+                            "scriptSrcAttr": "self",
+                            "styleSrcElem": "self",
+                            "styleSrcAttr": "self",
+                            "workerSrc": [],
+                            "upgradeInsecureRequests": false,
+                            "reportOnly": false,
+                            "validSources": [
+                                "self",
+                                "none",
+                                "unsafe-inline",
+                                "unsafe-eval",
+                                "strict-dynamic",
+                                "unsafe-hashes",
+                                "report-sample",
+                                "unsafe-allow-redirects",
+                                "wasm-unsafe-eval",
+                                "trusted-types-eval",
+                                "report-sha256",
+                                "report-sha384",
+                                "report-sha512"
+                            ],
+                            "nonces": [],
+                            "styleNonce": null,
+                            "scriptNonce": null,
+                            "styleNonceTag": "",
+                            "scriptNonceTag": "",
+                            "autoNonce": true,
+                            "tempHeaders": [],
+                            "reportOnlyHeaders": [],
+                            "CSPEnabled": false,
+                            "reportingEndpoints": []
+                        },
+                        "cookieStore": {
+                            "cookies": []
+                        },
+                        "bodyFormat": "html"
+                    },
+                    "logger": {
+                        "logLevels": {
+                            "emergency": 1,
+                            "alert": 2,
+                            "critical": 3,
+                            "error": 4,
+                            "warning": 5,
+                            "notice": 6,
+                            "info": 7,
+                            "debug": 8
+                        },
+                        "loggableLevels": [
+                            "emergency",
+                            "alert",
+                            "critical",
+                            "error",
+                            "warning",
+                            "notice",
+                            "info",
+                            "debug"
+                        ],
+                        "filePermissions": 420,
+                        "dateFormat": "Y-m-d H:i:s",
+                        "fileExt": null,
+                        "handlers": {
+                            "CodeIgniter\\Log\\Handlers\\FileHandler": {
+                                "handles": [
+                                    "critical",
+                                    "alert",
+                                    "emergency",
+                                    "debug",
+                                    "error",
+                                    "info",
+                                    "notice",
+                                    "warning"
+                                ],
+                                "dateFormat": "Y-m-d H:i:s",
+                                "path": "C:\\xampp\\htdocs\\exam\\writable\\logs/",
+                                "fileExtension": "log",
+                                "filePermissions": 420
+                            }
+                        },
+                        "handlerConfig": {
+                            "CodeIgniter\\Log\\Handlers\\FileHandler": {
+                                "handles": [
+                                    "critical",
+                                    "alert",
+                                    "emergency",
+                                    "debug",
+                                    "error",
+                                    "info",
+                                    "notice",
+                                    "warning"
+                                ],
+                                "fileExtension": "",
+                                "filePermissions": 420,
+                                "path": ""
+                            }
+                        },
+                        "logCache": [
+                            {
+                                "level": "error",
+                                "msg": "Error connecting to the database: mysqli_sql_exception: No connection could be made because the target machine actively refused it in C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\MySQLi\\Connection.php:201\nStack trace:\n#0 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\MySQLi\\Connection.php(201): mysqli->real_connect('localhost', 'sonet', Object(SensitiveParameterValue), 'exam-nova-db', 3306, '', 0)\n#1 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\BaseConnection.php(555): CodeIgniter\\Database\\MySQLi\\Connection->connect(false)\n#2 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\BaseConnection.php(795): CodeIgniter\\Database\\BaseConnection->initialize()\n#3 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\BaseBuilder.php(1659): CodeIgniter\\Database\\BaseConnection->query('SELECT *\\nFROM `...', Array, false)\n#4 C:\\xampp\\htdocs\\exam\\app\\Controllers\\Admin.php(46): CodeIgniter\\Database\\BaseBuilder->get()\n#5 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php(974): App\\Controllers\\Admin->login()\n#6 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php(520): CodeIgniter\\CodeIgniter->runController(Object(App\\Controllers\\Admin))\n#7 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php(363): CodeIgniter\\CodeIgniter->handleRequest(NULL, Object(Config\\Cache), false)\n#8 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Boot.php(417): CodeIgniter\\CodeIgniter->run()\n#9 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Boot.php(68): CodeIgniter\\Boot::runCodeIgniter(Object(CodeIgniter\\CodeIgniter))\n#10 C:\\xampp\\htdocs\\exam\\public\\index.php(59): CodeIgniter\\Boot::bootWeb(Object(Config\\Paths))\n#11 {main}\n\nNext CodeIgniter\\Database\\Exceptions\\DatabaseException: No connection could be made because the target machine actively refused it in C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\MySQLi\\Connection.php:231\nStack trace:\n#0 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\BaseConnection.php(555): CodeIgniter\\Database\\MySQLi\\Connection->connect(false)\n#1 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\BaseConnection.php(795): CodeIgniter\\Database\\BaseConnection->initialize()\n#2 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Database\\BaseBuilder.php(1659): CodeIgniter\\Database\\BaseConnection->query('SELECT *\\nFROM `...', Array, false)\n#3 C:\\xampp\\htdocs\\exam\\app\\Controllers\\Admin.php(46): CodeIgniter\\Database\\BaseBuilder->get()\n#4 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php(974): App\\Controllers\\Admin->login()\n#5 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php(520): CodeIgniter\\CodeIgniter->runController(Object(App\\Controllers\\Admin))\n#6 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php(363): CodeIgniter\\CodeIgniter->handleRequest(NULL, Object(Config\\Cache), false)\n#7 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Boot.php(417): CodeIgniter\\CodeIgniter->run()\n#8 C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Boot.php(68): CodeIgniter\\Boot::runCodeIgniter(Object(CodeIgniter\\CodeIgniter))\n#9 C:\\xampp\\htdocs\\exam\\public\\index.php(59): CodeIgniter\\Boot::bootWeb(Object(Config\\Paths))\n#10 {main}"
+                            },
+                            {
+                                "level": "critical",
+                                "msg": "CodeIgniter\\Database\\Exceptions\\DatabaseException: Unable to connect to the database.\r\nMain connection [MySQLi]: No connection could be made because the target machine actively refused it\n[Method: POST, Route: admin/login]\nin SYSTEMPATH\\Database\\BaseConnection.php on line 606.\n 1 SYSTEMPATH\\Database\\BaseConnection.php(795): CodeIgniter\\Database\\BaseConnection->initialize()\n 2 SYSTEMPATH\\Database\\BaseBuilder.php(1659): CodeIgniter\\Database\\BaseConnection->query('SELECT *\nFROM `users`\nWHERE `username` = :username:\nAND `usertype` IN :usertype:', [...], false)\n 3 APPPATH\\Controllers\\Admin.php(46): CodeIgniter\\Database\\BaseBuilder->get()\n 4 SYSTEMPATH\\CodeIgniter.php(974): App\\Controllers\\Admin->login()\n 5 SYSTEMPATH\\CodeIgniter.php(520): CodeIgniter\\CodeIgniter->runController(Object(App\\Controllers\\Admin))\n 6 SYSTEMPATH\\CodeIgniter.php(363): CodeIgniter\\CodeIgniter->handleRequest(null, Object(Config\\Cache), false)\n 7 SYSTEMPATH\\Boot.php(417): CodeIgniter\\CodeIgniter->run()\n 8 SYSTEMPATH\\Boot.php(68): CodeIgniter\\Boot::runCodeIgniter(Object(CodeIgniter\\CodeIgniter))\n 9 FCPATH\\index.php(59): CodeIgniter\\Boot::bootWeb(Object(Config\\Paths))"
+                            }
+                        ],
+                        "cacheLogs": true
+                    },
+                    "forceHTTPS": 0,
+                    "validator": null
+                }
+            ]
+        },
+        {
+            "file": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php",
+            "line": 363,
+            "function": "handleRequest",
+            "class": "CodeIgniter\\CodeIgniter",
+            "type": "->",
+            "args": [
+                null,
+                {
+                    "handler": "file",
+                    "backupHandler": "dummy",
+                    "prefix": "",
+                    "ttl": 60,
+                    "reservedCharacters": "{}()/\\@:",
+                    "file": {
+                        "storePath": "C:\\xampp\\htdocs\\exam\\writable\\cache/",
+                        "mode": 416
+                    },
+                    "memcached": {
+                        "host": "127.0.0.1",
+                        "port": 11211,
+                        "weight": 1,
+                        "raw": false
+                    },
+                    "redis": {
+                        "host": "127.0.0.1",
+                        "password": null,
+                        "port": 6379,
+                        "timeout": 0,
+                        "async": false,
+                        "persistent": false,
+                        "database": 0
+                    },
+                    "validHandlers": {
+                        "apcu": "CodeIgniter\\Cache\\Handlers\\ApcuHandler",
+                        "dummy": "CodeIgniter\\Cache\\Handlers\\DummyHandler",
+                        "file": "CodeIgniter\\Cache\\Handlers\\FileHandler",
+                        "memcached": "CodeIgniter\\Cache\\Handlers\\MemcachedHandler",
+                        "predis": "CodeIgniter\\Cache\\Handlers\\PredisHandler",
+                        "redis": "CodeIgniter\\Cache\\Handlers\\RedisHandler",
+                        "wincache": "CodeIgniter\\Cache\\Handlers\\WincacheHandler"
+                    },
+                    "cacheQueryString": false,
+                    "cacheStatusCodes": []
+                },
+                false
+            ]
+        },
+        {
+            "file": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Boot.php",
+            "line": 417,
+            "function": "run",
+            "class": "CodeIgniter\\CodeIgniter",
+            "type": "->",
+            "args": []
+        },
+        {
+            "file": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\Boot.php",
+            "line": 68,
+            "function": "runCodeIgniter",
+            "class": "CodeIgniter\\Boot",
+            "type": "::",
+            "args": [
+                {
+                    "startTime": 1789973898.724084,
+                    "totalTime": null,
+                    "config": "[Config\\App Object *RECURSION*]",
+                    "benchmark": {
+                        "timers": {
+                            "total_execution": {
+                                "start": 1789973898.724084,
+                                "end": null
+                            },
+                            "bootstrap": {
+                                "start": 1789973898.763697,
+                                "end": 1789973898.924379
+                            },
+                            "required_before_filters": {
+                                "start": 1789973898.924386,
+                                "end": 1789973898.947199
+                            },
+                            "routing": {
+                                "start": 1789973898.947229,
+                                "end": 1789973898.989263
+                            },
+                            "before_filters": {
+                                "start": 1789973898.99234,
+                                "end": 1789973898.992472
+                            },
+                            "controller": {
+                                "start": 1789973898.992491,
+                                "end": null
+                            },
+                            "controller_constructor": {
+                                "start": 1789973898.992495,
+                                "end": 1789973899.001726
+                            },
+                            "route_attributes_before": {
+                                "start": 1789973898.992583,
+                                "end": 1789973898.992596
+                            }
+                        }
+                    },
+                    "request": "[CodeIgniter\\HTTP\\IncomingRequest Object *RECURSION*]",
+                    "response": "[CodeIgniter\\HTTP\\Response Object *RECURSION*]",
+                    "router": {
+                        "collection": {
+                            "defaultNamespace": "App\\Controllers\\",
+                            "defaultController": "Home",
+                            "defaultMethod": "index",
+                            "defaultPlaceholder": "any",
+                            "translateURIDashes": false,
+                            "autoRoute": false,
+                            "override404": null,
+                            "routeFiles": [
+                                "C:\\xampp\\htdocs\\exam\\app\\Config\\Routes.php"
+                            ],
+                            "placeholders": {
+                                "any": ".*",
+                                "segment": "[^/]+",
+                                "alphanum": "[a-zA-Z0-9]+",
+                                "num": "[0-9]+",
+                                "alpha": "[a-zA-Z]+",
+                                "hash": "[^/]+"
+                            },
+                            "routes": {
+                                "*": [],
+                                "OPTIONS": [],
+                                "GET": {
+                                    "__hot-reload": {
+                                        "name": "__hot-reload",
+                                        "handler": "[Closure]",
+                                        "from": "__hot-reload"
+                                    },
+                                    "/": {
+                                        "name": "/",
+                                        "handler": "\\App\\Controllers\\Exam::dashboard",
+                                        "from": "/"
+                                    },
+                                    "dashboard": {
+                                        "name": "dashboard",
+                                        "handler": "\\App\\Controllers\\Exam::dashboard",
+                                        "from": "dashboard"
+                                    },
+                                    "exam": {
+                                        "name": "exam",
+                                        "handler": "\\App\\Controllers\\Exam::examPage",
+                                        "from": "exam"
+                                    },
+                                    "exam/dashboard": {
+                                        "name": "exam/dashboard",
+                                        "handler": "\\App\\Controllers\\Exam::dashboard",
+                                        "from": "exam/dashboard"
+                                    },
+                                    "exam/submitted": {
+                                        "name": "exam/submitted",
+                                        "handler": "\\App\\Controllers\\Exam::submittedPage",
+                                        "from": "exam/submitted"
+                                    },
+                                    "exam/submission-history": {
+                                        "name": "exam/submission-history",
+                                        "handler": "\\App\\Controllers\\Exam::submissionHistory",
+                                        "from": "exam/submission-history"
+                                    },
+                                    "login": {
+                                        "name": "login",
+                                        "handler": "\\App\\Controllers\\Exam::loginForm",
+                                        "from": "login"
+                                    },
+                                    "logout": {
+                                        "name": "logout",
+                                        "handler": "\\App\\Controllers\\Exam::logout",
+                                        "from": "logout"
+                                    },
+                                    "welcome": {
+                                        "name": "welcome",
+                                        "handler": "\\App\\Controllers\\Home::index",
+                                        "from": "welcome"
+                                    },
+                                    "exam/questions/([0-9]+)/attachment": {
+                                        "name": "exam/questions/([0-9]+)/attachment",
+                                        "handler": "\\App\\Controllers\\Exam::questionAttachment/$1",
+                                        "from": "exam/questions/(:num)/attachment"
+                                    },
+                                    "exam/questions/([0-9]+)/attachment/([0-9]+)": {
+                                        "name": "exam/questions/([0-9]+)/attachment/([0-9]+)",
+                                        "handler": "\\App\\Controllers\\Exam::questionAttachment/$1/$2",
+                                        "from": "exam/questions/(:num)/attachment/(:num)"
+                                    },
+                                    "admin/login": {
+                                        "name": "admin/login",
+                                        "handler": "\\App\\Controllers\\Admin::loginForm",
+                                        "from": "admin/login"
+                                    },
+                                    "admin/logout": {
+                                        "name": "admin/logout",
+                                        "handler": "\\App\\Controllers\\Admin::logout",
+                                        "from": "admin/logout"
+                                    },
+                                    "admin": {
+                                        "name": "admin",
+                                        "handler": "\\App\\Controllers\\Admin::index",
+                                        "from": "admin"
+                                    },
+                                    "admin/questions": {
+                                        "name": "admin/questions",
+                                        "handler": "\\App\\Controllers\\Admin::questions",
+                                        "from": "admin/questions"
+                                    },
+                                    "admin/questions/new": {
+                                        "name": "admin/questions/new",
+                                        "handler": "\\App\\Controllers\\Admin::newQuestion",
+                                        "from": "admin/questions/new"
+                                    },
+                                    "admin/questions/create": {
+                                        "name": "admin/questions/create",
+                                        "handler": "\\App\\Controllers\\Admin::newQuestion",
+                                        "from": "admin/questions/create"
+                                    },
+                                    "admin/questions/([0-9]+)/edit": {
+                                        "name": "admin/questions/([0-9]+)/edit",
+                                        "handler": "\\App\\Controllers\\Admin::editQuestion/$1",
+                                        "from": "admin/questions/(:num)/edit"
+                                    },
+                                    "admin/questions/([0-9]+)/attachment": {
+                                        "name": "admin/questions/([0-9]+)/attachment",
+                                        "handler": "\\App\\Controllers\\Admin::questionAttachment/$1",
+                                        "from": "admin/questions/(:num)/attachment"
+                                    },
+                                    "admin/questions/([0-9]+)/attachment/([0-9]+)": {
+                                        "name": "admin/questions/([0-9]+)/attachment/([0-9]+)",
+                                        "handler": "\\App\\Controllers\\Admin::questionAttachment/$1/$2",
+                                        "from": "admin/questions/(:num)/attachment/(:num)"
+                                    },
+                                    "admin/submissions": {
+                                        "name": "admin/submissions",
+                                        "handler": "\\App\\Controllers\\Admin::submissions",
+                                        "from": "admin/submissions"
+                                    },
+                                    "admin/submissions/export": {
+                                        "name": "admin/submissions/export",
+                                        "handler": "\\App\\Controllers\\Admin::exportSubmissionMarks",
+                                        "from": "admin/submissions/export"
+                                    },
+                                    "admin/submissions/([0-9]+)": {
+                                        "name": "admin/submissions/([0-9]+)",
+                                        "handler": "\\App\\Controllers\\Admin::submissionDetail/$1",
+                                        "from": "admin/submissions/(:num)"
+                                    },
+                                    "admin/submissions/([0-9]+)/question/([0-9]+)/file": {
+                                        "name": "admin/submissions/([0-9]+)/question/([0-9]+)/file",
+                                        "handler": "\\App\\Controllers\\Admin::submissionFile/$1/$2",
+                                        "from": "admin/submissions/(:num)/question/(:num)/file"
+                                    },
+                                    "admin/audit-logs": {
+                                        "name": "admin/audit-logs",
+                                        "handler": "\\App\\Controllers\\Admin::auditLogs",
+                                        "from": "admin/audit-logs"
+                                    },
+                                    "admin/login-history": {
+                                        "name": "admin/login-history",
+                                        "handler": "\\App\\Controllers\\Admin::loginHistory",
+                                        "from": "admin/login-history"
+                                    },
+                                    "admin/applicants": {
+                                        "name": "admin/applicants",
+                                        "handler": "\\App\\Controllers\\Admin::applicants",
+                                        "from": "admin/applicants"
+                                    },
+                                    "admin/applicants/new": {
+                                        "name": "admin/applicants/new",
+                                        "handler": "\\App\\Controllers\\Admin::newApplicant",
+                                        "from": "admin/applicants/new"
+                                    },
+                                    "admin/applicants/create": {
+                                        "name": "admin/applicants/create",
+                                        "handler": "\\App\\Controllers\\Admin::newApplicant",
+                                        "from": "admin/applicants/create"
+                                    },
+                                    "admin/applicants/([0-9]+)/edit": {
+                                        "name": "admin/applicants/([0-9]+)/edit",
+                                        "handler": "\\App\\Controllers\\Admin::editApplicant/$1",
+                                        "from": "admin/applicants/(:num)/edit"
+                                    },
+                                    "admin/applicants/bulk-upload": {
+                                        "name": "admin/applicants/bulk-upload",
+                                        "handler": "\\App\\Controllers\\Admin::bulkApplicantForm",
+                                        "from": "admin/applicants/bulk-upload"
+                                    },
+                                    "admin/applicants/template": {
+                                        "name": "admin/applicants/template",
+                                        "handler": "\\App\\Controllers\\Admin::applicantTemplate",
+                                        "from": "admin/applicants/template"
+                                    },
+                                    "admin/exams": {
+                                        "name": "admin/exams",
+                                        "handler": "\\App\\Controllers\\Admin::exams",
+                                        "from": "admin/exams"
+                                    },
+                                    "admin/exams/new": {
+                                        "name": "admin/exams/new",
+                                        "handler": "\\App\\Controllers\\Admin::newExam",
+                                        "from": "admin/exams/new"
+                                    },
+                                    "admin/exams/create": {
+                                        "name": "admin/exams/create",
+                                        "handler": "\\App\\Controllers\\Admin::newExam",
+                                        "from": "admin/exams/create"
+                                    },
+                                    "admin/exams/([0-9]+)/edit": {
+                                        "name": "admin/exams/([0-9]+)/edit",
+                                        "handler": "\\App\\Controllers\\Admin::editExam/$1",
+                                        "from": "admin/exams/(:num)/edit"
+                                    },
+                                    "admin/exams/([0-9]+)/monitor": {
+                                        "name": "admin/exams/([0-9]+)/monitor",
+                                        "handler": "\\App\\Controllers\\Admin::examMonitor/$1",
+                                        "from": "admin/exams/(:num)/monitor"
+                                    },
+                                    "admin/exams/([0-9]+)/monitor/data": {
+                                        "name": "admin/exams/([0-9]+)/monitor/data",
+                                        "handler": "\\App\\Controllers\\Admin::examMonitorData/$1",
+                                        "from": "admin/exams/(:num)/monitor/data"
+                                    },
+                                    "admin/exams/([0-9]+)/questions": {
+                                        "name": "admin/exams/([0-9]+)/questions",
+                                        "handler": "\\App\\Controllers\\Admin::examQuestions/$1",
+                                        "from": "admin/exams/(:num)/questions"
+                                    },
+                                    "admin/exams/([0-9]+)/questions/create": {
+                                        "name": "admin/exams/([0-9]+)/questions/create",
+                                        "handler": "\\App\\Controllers\\Admin::newQuestion/$1",
+                                        "from": "admin/exams/(:num)/questions/create"
+                                    }
+                                },
+                                "HEAD": [],
+                                "POST": {
+                                    "login": {
+                                        "name": "login",
+                                        "handler": "\\App\\Controllers\\Exam::login",
+                                        "from": "login"
+                                    },
+                                    "exam/upload": {
+                                        "name": "exam/upload",
+                                        "handler": "\\App\\Controllers\\Exam::upload",
+                                        "from": "exam/upload"
+                                    },
+                                    "exam/autosave": {
+                                        "name": "exam/autosave",
+                                        "handler": "\\App\\Controllers\\Exam::autosave",
+                                        "from": "exam/autosave"
+                                    },
+                                    "exam/activity": {
+                                        "name": "exam/activity",
+                                        "handler": "\\App\\Controllers\\Exam::activity",
+                                        "from": "exam/activity"
+                                    },
+                                    "exam/submit": {
+                                        "name": "exam/submit",
+                                        "handler": "\\App\\Controllers\\Exam::submit",
+                                        "from": "exam/submit"
+                                    },
+                                    "admin/login": {
+                                        "name": "admin/login",
+                                        "handler": "\\App\\Controllers\\Admin::login",
+                                        "from": "admin/login"
+                                    },
+                                    "admin/questions": {
+                                        "name": "admin/questions",
+                                        "handler": "\\App\\Controllers\\Admin::createQuestion",
+                                        "from": "admin/questions"
+                                    },
+                                    "admin/questions/store": {
+                                        "name": "admin/questions/store",
+                                        "handler": "\\App\\Controllers\\Admin::createQuestion",
+                                        "from": "admin/questions/store"
+                                    },
+                                    "admin/questions/([0-9]+)/update": {
+                                        "name": "admin/questions/([0-9]+)/update",
+                                        "handler": "\\App\\Controllers\\Admin::updateQuestion/$1",
+                                        "from": "admin/questions/(:num)/update"
+                                    },
+                                    "admin/questions/([0-9]+)/delete": {
+                                        "name": "admin/questions/([0-9]+)/delete",
+                                        "handler": "\\App\\Controllers\\Admin::deleteQuestion/$1",
+                                        "from": "admin/questions/(:num)/delete"
+                                    },
+                                    "admin/submissions/delete-all": {
+                                        "name": "admin/submissions/delete-all",
+                                        "handler": "\\App\\Controllers\\Admin::deleteAllSubmissions",
+                                        "from": "admin/submissions/delete-all"
+                                    },
+                                    "admin/submissions/([0-9]+)/mark": {
+                                        "name": "admin/submissions/([0-9]+)/mark",
+                                        "handler": "\\App\\Controllers\\Admin::markSubmission/$1",
+                                        "from": "admin/submissions/(:num)/mark"
+                                    },
+                                    "admin/applicants/credentials": {
+                                        "name": "admin/applicants/credentials",
+                                        "handler": "\\App\\Controllers\\Admin::downloadAllApplicantCredentials",
+                                        "from": "admin/applicants/credentials"
+                                    },
+                                    "admin/applicants": {
+                                        "name": "admin/applicants",
+                                        "handler": "\\App\\Controllers\\Admin::createApplicant",
+                                        "from": "admin/applicants"
+                                    },
+                                    "admin/applicants/create": {
+                                        "name": "admin/applicants/create",
+                                        "handler": "\\App\\Controllers\\Admin::createApplicant",
+                                        "from": "admin/applicants/create"
+                                    },
+                                    "admin/applicants/([0-9]+)/update": {
+                                        "name": "admin/applicants/([0-9]+)/update",
+                                        "handler": "\\App\\Controllers\\Admin::updateApplicant/$1",
+                                        "from": "admin/applicants/(:num)/update"
+                                    },
+                                    "admin/applicants/([0-9]+)/delete": {
+                                        "name": "admin/applicants/([0-9]+)/delete",
+                                        "handler": "\\App\\Controllers\\Admin::deleteApplicant/$1",
+                                        "from": "admin/applicants/(:num)/delete"
+                                    },
+                                    "admin/applicants/bulk-upload": {
+                                        "name": "admin/applicants/bulk-upload",
+                                        "handler": "\\App\\Controllers\\Admin::bulkApplicantUpload",
+                                        "from": "admin/applicants/bulk-upload"
+                                    },
+                                    "admin/exams/([0-9]+)/monitor/force-submit": {
+                                        "name": "admin/exams/([0-9]+)/monitor/force-submit",
+                                        "handler": "\\App\\Controllers\\Admin::forceSubmitUnsubmitted/$1",
+                                        "from": "admin/exams/(:num)/monitor/force-submit"
+                                    },
+                                    "admin/exams": {
+                                        "name": "admin/exams",
+                                        "handler": "\\App\\Controllers\\Admin::createExam",
+                                        "from": "admin/exams"
+                                    },
+                                    "admin/exams/create": {
+                                        "name": "admin/exams/create",
+                                        "handler": "\\App\\Controllers\\Admin::createExam",
+                                        "from": "admin/exams/create"
+                                    },
+                                    "admin/exams/([0-9]+)/update": {
+                                        "name": "admin/exams/([0-9]+)/update",
+                                        "handler": "\\App\\Controllers\\Admin::updateExam/$1",
+                                        "from": "admin/exams/(:num)/update"
+                                    },
+                                    "admin/exams/([0-9]+)/delete": {
+                                        "name": "admin/exams/([0-9]+)/delete",
+                                        "handler": "\\App\\Controllers\\Admin::deleteExam/$1",
+                                        "from": "admin/exams/(:num)/delete"
+                                    },
+                                    "admin/exams/([0-9]+)/submissions/delete-all": {
+                                        "name": "admin/exams/([0-9]+)/submissions/delete-all",
+                                        "handler": "\\App\\Controllers\\Admin::deleteAllSubmissions/$1",
+                                        "from": "admin/exams/(:num)/submissions/delete-all"
+                                    }
+                                },
+                                "PATCH": [],
+                                "PUT": [],
+                                "DELETE": [],
+                                "TRACE": [],
+                                "CONNECT": [],
+                                "CLI": []
+                            },
+                            "routesNames": {
+                                "*": [],
+                                "OPTIONS": [],
+                                "GET": {
+                                    "__hot-reload": "__hot-reload",
+                                    "/": "/",
+                                    "dashboard": "dashboard",
+                                    "exam": "exam",
+                                    "exam/dashboard": "exam/dashboard",
+                                    "exam/submitted": "exam/submitted",
+                                    "exam/submission-history": "exam/submission-history",
+                                    "login": "login",
+                                    "logout": "logout",
+                                    "welcome": "welcome",
+                                    "exam/questions/([0-9]+)/attachment": "exam/questions/([0-9]+)/attachment",
+                                    "exam/questions/([0-9]+)/attachment/([0-9]+)": "exam/questions/([0-9]+)/attachment/([0-9]+)",
+                                    "admin/login": "admin/login",
+                                    "admin/logout": "admin/logout",
+                                    "admin": "admin",
+                                    "admin/questions": "admin/questions",
+                                    "admin/questions/new": "admin/questions/new",
+                                    "admin/questions/create": "admin/questions/create",
+                                    "admin/questions/([0-9]+)/edit": "admin/questions/([0-9]+)/edit",
+                                    "admin/questions/([0-9]+)/attachment": "admin/questions/([0-9]+)/attachment",
+                                    "admin/questions/([0-9]+)/attachment/([0-9]+)": "admin/questions/([0-9]+)/attachment/([0-9]+)",
+                                    "admin/submissions": "admin/submissions",
+                                    "admin/submissions/export": "admin/submissions/export",
+                                    "admin/submissions/([0-9]+)": "admin/submissions/([0-9]+)",
+                                    "admin/submissions/([0-9]+)/question/([0-9]+)/file": "admin/submissions/([0-9]+)/question/([0-9]+)/file",
+                                    "admin/audit-logs": "admin/audit-logs",
+                                    "admin/login-history": "admin/login-history",
+                                    "admin/applicants": "admin/applicants",
+                                    "admin/applicants/new": "admin/applicants/new",
+                                    "admin/applicants/create": "admin/applicants/create",
+                                    "admin/applicants/([0-9]+)/edit": "admin/applicants/([0-9]+)/edit",
+                                    "admin/applicants/bulk-upload": "admin/applicants/bulk-upload",
+                                    "admin/applicants/template": "admin/applicants/template",
+                                    "admin/exams": "admin/exams",
+                                    "admin/exams/new": "admin/exams/new",
+                                    "admin/exams/create": "admin/exams/create",
+                                    "admin/exams/([0-9]+)/edit": "admin/exams/([0-9]+)/edit",
+                                    "admin/exams/([0-9]+)/monitor": "admin/exams/([0-9]+)/monitor",
+                                    "admin/exams/([0-9]+)/monitor/data": "admin/exams/([0-9]+)/monitor/data",
+                                    "admin/exams/([0-9]+)/questions": "admin/exams/([0-9]+)/questions",
+                                    "admin/exams/([0-9]+)/questions/create": "admin/exams/([0-9]+)/questions/create"
+                                },
+                                "HEAD": [],
+                                "POST": {
+                                    "login": "login",
+                                    "exam/upload": "exam/upload",
+                                    "exam/autosave": "exam/autosave",
+                                    "exam/activity": "exam/activity",
+                                    "exam/submit": "exam/submit",
+                                    "admin/login": "admin/login",
+                                    "admin/questions": "admin/questions",
+                                    "admin/questions/store": "admin/questions/store",
+                                    "admin/questions/([0-9]+)/update": "admin/questions/([0-9]+)/update",
+                                    "admin/questions/([0-9]+)/delete": "admin/questions/([0-9]+)/delete",
+                                    "admin/submissions/delete-all": "admin/submissions/delete-all",
+                                    "admin/submissions/([0-9]+)/mark": "admin/submissions/([0-9]+)/mark",
+                                    "admin/applicants/credentials": "admin/applicants/credentials",
+                                    "admin/applicants": "admin/applicants",
+                                    "admin/applicants/create": "admin/applicants/create",
+                                    "admin/applicants/([0-9]+)/update": "admin/applicants/([0-9]+)/update",
+                                    "admin/applicants/([0-9]+)/delete": "admin/applicants/([0-9]+)/delete",
+                                    "admin/applicants/bulk-upload": "admin/applicants/bulk-upload",
+                                    "admin/exams/([0-9]+)/monitor/force-submit": "admin/exams/([0-9]+)/monitor/force-submit",
+                                    "admin/exams": "admin/exams",
+                                    "admin/exams/create": "admin/exams/create",
+                                    "admin/exams/([0-9]+)/update": "admin/exams/([0-9]+)/update",
+                                    "admin/exams/([0-9]+)/delete": "admin/exams/([0-9]+)/delete",
+                                    "admin/exams/([0-9]+)/submissions/delete-all": "admin/exams/([0-9]+)/submissions/delete-all"
+                                },
+                                "PATCH": [],
+                                "PUT": [],
+                                "DELETE": [],
+                                "TRACE": [],
+                                "CONNECT": [],
+                                "CLI": []
+                            },
+                            "routesOptions": {
+                                "GET": {
+                                    "__hot-reload": [],
+                                    "/": [],
+                                    "dashboard": [],
+                                    "exam": [],
+                                    "exam/dashboard": [],
+                                    "exam/submitted": [],
+                                    "exam/submission-history": [],
+                                    "login": [],
+                                    "logout": [],
+                                    "welcome": [],
+                                    "exam/questions/([0-9]+)/attachment": [],
+                                    "exam/questions/([0-9]+)/attachment/([0-9]+)": [],
+                                    "admin/login": [],
+                                    "admin/logout": [],
+                                    "admin": [],
+                                    "admin/questions": [],
+                                    "admin/questions/new": [],
+                                    "admin/questions/create": [],
+                                    "admin/questions/([0-9]+)/edit": [],
+                                    "admin/questions/([0-9]+)/attachment": [],
+                                    "admin/questions/([0-9]+)/attachment/([0-9]+)": [],
+                                    "admin/submissions": [],
+                                    "admin/submissions/export": [],
+                                    "admin/submissions/([0-9]+)": [],
+                                    "admin/submissions/([0-9]+)/question/([0-9]+)/file": [],
+                                    "admin/audit-logs": [],
+                                    "admin/login-history": [],
+                                    "admin/applicants": [],
+                                    "admin/applicants/new": [],
+                                    "admin/applicants/create": [],
+                                    "admin/applicants/([0-9]+)/edit": [],
+                                    "admin/applicants/bulk-upload": [],
+                                    "admin/applicants/template": [],
+                                    "admin/exams": [],
+                                    "admin/exams/new": [],
+                                    "admin/exams/create": [],
+                                    "admin/exams/([0-9]+)/edit": [],
+                                    "admin/exams/([0-9]+)/monitor": [],
+                                    "admin/exams/([0-9]+)/monitor/data": [],
+                                    "admin/exams/([0-9]+)/questions": [],
+                                    "admin/exams/([0-9]+)/questions/create": []
+                                },
+                                "POST": {
+                                    "login": [],
+                                    "exam/upload": [],
+                                    "exam/autosave": [],
+                                    "exam/activity": [],
+                                    "exam/submit": [],
+                                    "admin/login": [],
+                                    "admin/questions": [],
+                                    "admin/questions/store": [],
+                                    "admin/questions/([0-9]+)/update": [],
+                                    "admin/questions/([0-9]+)/delete": [],
+                                    "admin/submissions/delete-all": [],
+                                    "admin/submissions/([0-9]+)/mark": [],
+                                    "admin/applicants/credentials": [],
+                                    "admin/applicants": [],
+                                    "admin/applicants/create": [],
+                                    "admin/applicants/([0-9]+)/update": [],
+                                    "admin/applicants/([0-9]+)/delete": [],
+                                    "admin/applicants/bulk-upload": [],
+                                    "admin/exams/([0-9]+)/monitor/force-submit": [],
+                                    "admin/exams": [],
+                                    "admin/exams/create": [],
+                                    "admin/exams/([0-9]+)/update": [],
+                                    "admin/exams/([0-9]+)/delete": [],
+                                    "admin/exams/([0-9]+)/submissions/delete-all": []
+                                }
+                            },
+                            "HTTPVerb": "POST",
+                            "defaultHTTPMethods": [
+                                "GET",
+                                "HEAD",
+                                "POST",
+                                "PATCH",
+                                "PUT",
+                                "DELETE",
+                                "OPTIONS",
+                                "TRACE",
+                                "CONNECT",
+                                "CLI"
+                            ],
+                            "group": null,
+                            "currentSubdomain": null,
+                            "currentOptions": null,
+                            "didDiscover": true,
+                            "fileLocator": {
+                                "autoloader": {
+                                    "prefixes": {
+                                        "CodeIgniter": [
+                                            "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\"
+                                        ],
+                                        "Config": [
+                                            "C:\\xampp\\htdocs\\exam\\app\\Config\\"
+                                        ],
+                                        "App": [
+                                            "C:\\xampp\\htdocs\\exam\\app\\"
+                                        ],
+                                        "Tests\\Support": [
+                                            "C:\\xampp\\htdocs\\exam\\vendor\\composer/../../tests/_support\\"
+                                        ],
+                                        "Psr\\Log": [
+                                            "C:\\xampp\\htdocs\\exam\\vendor\\composer/../psr/log/src\\"
+                                        ],
+                                        "Psr\\Container": [
+                                            "C:\\xampp\\htdocs\\exam\\vendor\\composer/../psr/container/src\\"
+                                        ],
+                                        "PhpParser": [
+                                            "C:\\xampp\\htdocs\\exam\\vendor\\composer/../nikic/php-parser/lib/PhpParser\\"
+                                        ],
+                                        "Laminas\\Escaper": [
+                                            "C:\\xampp\\htdocs\\exam\\vendor\\composer/../laminas/laminas-escaper/src\\"
+                                        ],
+                                        "Faker": [
+                                            "C:\\xampp\\htdocs\\exam\\vendor\\composer/../fakerphp/faker/src/Faker\\"
+                                        ],
+                                        "DeepCopy": [
+                                            "C:\\xampp\\htdocs\\exam\\vendor\\composer/../myclabs/deep-copy/src/DeepCopy\\"
+                                        ]
+                                    },
+                                    "classmap": {
+                                        "Psr\\Log\\AbstractLogger": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/PSR/Log/AbstractLogger.php",
+                                        "Psr\\Log\\InvalidArgumentException": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/PSR/Log/InvalidArgumentException.php",
+                                        "Psr\\Log\\LoggerAwareInterface": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/PSR/Log/LoggerAwareInterface.php",
+                                        "Psr\\Log\\LoggerAwareTrait": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/PSR/Log/LoggerAwareTrait.php",
+                                        "Psr\\Log\\LoggerInterface": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/PSR/Log/LoggerInterface.php",
+                                        "Psr\\Log\\LoggerTrait": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/PSR/Log/LoggerTrait.php",
+                                        "Psr\\Log\\LogLevel": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/PSR/Log/LogLevel.php",
+                                        "Psr\\Log\\NullLogger": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/PSR/Log/NullLogger.php",
+                                        "Laminas\\Escaper\\Exception\\ExceptionInterface": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/Escaper/Exception/ExceptionInterface.php",
+                                        "Laminas\\Escaper\\Exception\\InvalidArgumentException": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/Escaper/Exception/InvalidArgumentException.php",
+                                        "Laminas\\Escaper\\Exception\\RuntimeException": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/Escaper/Exception/RuntimeException.php",
+                                        "Laminas\\Escaper\\EscaperInterface": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/Escaper/EscaperInterface.php",
+                                        "Laminas\\Escaper\\Escaper": "C:\\xampp\\htdocs\\exam\\vendor\\codeigniter4\\framework\\system\\ThirdParty/Escaper/Escaper.php"
+                                    },
+                                    "files": [],
+                                    "helpers": [
+                                        "url"
+                                    ],
+                                    "registeredClosures": [
+                                        "[Closure]",
+                                        "[Closure]"
+                                    ],
+                                    "composerPath": "C:\\xampp\\htdocs\\exam\\vendor/autoload.php"
+                                },
+                                "invalidClassnames": []
+                            },
+                            "moduleConfig": {
+                                "enabled": true,
+                                "discoverInComposer": true,
+                                "aliases": [
+                                    "events",
+                                    "filters",
+                                    "registrars",
+                                    "routes",
+                                    "services"
+                                ],
+                                "composerPackages": []
+                            },
+                            "prioritize": false,
+                            "prioritizeDetected": false,
+                            "httpHost": "localhost",
+                            "useSupportedLocalesOnly": false
+                        },
+                        "directory": null,
+                        "controller": "\\App\\Controllers\\Admin",
+                        "method": "login",
+                        "params": [],
+                        "indexPage": "index.php",
+                        "translateURIDashes": false,
+                        "matchedRoute": [
+                            "admin/login",
+                            "\\App\\Controllers\\Admin::login"
+                        ],
+                        "matchedRouteOptions": [],
+                        "detectedLocale": null,
+                        "filtersInfo": [],
+                        "autoRouter": null,
+                        "routeAttributes": {
+                            "class": [],
+                            "method": []
+                        },
+                        "permittedURIChars": "a-z 0-9~%.:_\\-"
+                    },
+                    "controller": "\\App\\Controllers\\Admin",
+                    "method": "login",
+                    "output": null,
+                    "context": "web",
+                    "enableFilters": true,
+                    "returnResponse": false,
+                    "bufferLevel": 1,
+                    "pageCache": {
+                        "cacheQueryString": false,
+                        "ttl": 0,
+                        "cache": {
+                            "prefix": "",
+                            "path": "C:\\xampp\\htdocs\\exam\\writable\\cache/",
+                            "mode": 416
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "file": "C:\\xampp\\htdocs\\exam\\public\\index.php",
+            "line": 59,
+            "function": "bootWeb",
+            "class": "CodeIgniter\\Boot",
+            "type": "::",
+            "args": [
+                {
+                    "systemDirectory": "C:\\xampp\\htdocs\\exam\\app\\Config/../../vendor/codeigniter4/framework/system",
+                    "appDirectory": "C:\\xampp\\htdocs\\exam\\app\\Config/..",
+                    "writableDirectory": "C:\\xampp\\htdocs\\exam\\app\\Config/../../writable",
+                    "testsDirectory": "C:\\xampp\\htdocs\\exam\\app\\Config/../../tests",
+                    "viewDirectory": "C:\\xampp\\htdocs\\exam\\app\\Config/../Views",
+                    "envDirectory": "C:\\xampp\\htdocs\\exam\\app\\Config/../../"
+                }
+            ]
+        }
+    ]
+}
