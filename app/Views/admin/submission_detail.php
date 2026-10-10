@@ -54,7 +54,52 @@
                   <?php elseif ($isUnanswered): ?>
                     <div class="answer-box unanswered">Not answered</div>
                   <?php else: ?>
-                    <div class="answer-box"><?= esc(is_array($answer) ? implode(', ', $answer) : (string) $answer) ?></div>
+                    <?php
+$answers = is_array($answer) ? $answer : [$answer];
+?>
+
+<div class="answer-box">
+
+    <?php foreach ($answers as $item): ?>
+
+        <?php
+        $item = trim((string) $item);
+
+        preg_match(
+            '/([A-Za-z0-9_-]+\/[^,\s]+\.(pdf|doc|docx|xls|xlsx|csv|ppt|pptx|txt|zip|rar|jpg|jpeg|png|gif|webp|mp4|mp3))/i',
+            $item,
+            $matches
+        );
+        ?>
+
+        <?php if (!empty($matches[1])): ?>
+
+            <?php
+            $filePath = $matches[1];
+            $fileName = basename($filePath);
+
+            $downloadUrl = base_url(
+                'download-exam-file?file=' . urlencode($filePath)
+            );
+            ?>
+
+            <div class="d-flex align-items-center gap-2">
+                <strong>File:</strong>
+
+                <span><?= esc($fileName) ?></span>
+
+                <a href="<?= esc($downloadUrl) ?>"
+                   class="btn btn-primary btn-sm">
+                    <i class="fa fa-download"></i>
+                    Download File
+                </a>
+            </div>
+
+        <?php endif; ?>
+
+    <?php endforeach; ?>
+
+</div>
                   <?php endif; ?>
                 </td>
                 <td class="marks-cell"><input class="marks-input" name="marks[<?= (int) $question['id'] ?>]" type="number" min="0" max="<?= esc($question['points']) ?>" step="0.01" value="<?= esc($displayMark) ?>" data-max="<?= esc($question['points']) ?>"><span class="max-mark">Max <?= esc($question['points']) ?></span></td>
