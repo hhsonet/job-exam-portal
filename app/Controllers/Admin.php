@@ -1951,5 +1951,86 @@ class Admin extends BaseController
 
         return $this->response->download($filePath, null)->setFileName($downloadName);
     }
+    public function downloadExamFile()
+    {
+        // Get file path from URL
+        $file = $this->request->getGet('file');
+
+        if (empty($file)) {
+            return $this->response
+                ->setStatusCode(400)
+                ->setBody('File not specified.');
+        }
+
+        /*
+         * Remove any directory traversal attempts.
+         * Example:
+         * ../AE-161/file.pdf
+         */
+        $file = str_replace(['../', '..\\'], '', $file);
+
+        /*
+         * Physical file location:
+         *
+         * public_html/writable/uploads/exam/
+         *
+         * WRITEPATH points to:
+         * public_html/writable/
+         */
+        $filePath = WRITEPATH . 'uploads/exam/' . $file;
+
+        // Check if file exists
+        if (!is_file($filePath)) {
+            return $this->response
+                ->setStatusCode(404)
+                ->setBody('File not found.');
+        }
+
+        // Get original filename
+        $fileName = basename($filePath);
+
+        // Force download
+        return $this->response->download($filePath, null);
+    }public function downloadExamFile()
+    {
+        // Get file path from URL
+        $file = $this->request->getGet('file');
+
+        if (empty($file)) {
+            return $this->response
+                ->setStatusCode(400)
+                ->setBody('File not specified.');
+        }
+
+        /*
+         * Remove any directory traversal attempts.
+         * Example:
+         * ../AE-161/file.pdf
+         */
+        $file = str_replace(['../', '..\\'], '', $file);
+
+        /*
+         * Physical file location:
+         *
+         * public_html/writable/uploads/exam/
+         *
+         * WRITEPATH points to:
+         * public_html/writable/
+         */
+        $filePath = WRITEPATH . 'uploads/exam/' . $file;
+
+        // Check if file exists
+        if (!is_file($filePath)) {
+            return $this->response
+                ->setStatusCode(404)
+                ->setBody('File not found.');
+        }
+
+        // Get original filename
+        $fileName = basename($filePath);
+
+        // Force download
+        return $this->response->download($filePath, null);
+    }
 
 }
