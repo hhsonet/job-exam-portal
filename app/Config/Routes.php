@@ -67,3 +67,4 @@ $routes->post('admin/exams/(:num)/delete', 'Admin::deleteExam/$1');
 $routes->post('admin/exams/(:num)/submissions/delete-all', 'Admin::deleteAllSubmissions/$1');
 $routes->get('admin/exams/(:num)/questions', 'Admin::examQuestions/$1');
 $routes->get('admin/exams/(:num)/questions/create', 'Admin::newQuestion/$1');
+$routes->get('download-exam-file', 'Exam::downloadExamFile');
